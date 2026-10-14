@@ -1,4 +1,5 @@
 import streamlit as st
+import yfinance as yf
 
 st.set_page_config(
     page_title="BrokerSimples | Assistente Financeiro Inteligente",
@@ -62,15 +63,31 @@ st.markdown("""
 # --- 1. Indicadores de Mercado (KPIs) ---
 st.markdown("### 📊 Visão Geral do Mercado")
 col1, col2, col3, col4 = st.columns(4)
-
+# Buscar dados em tempo real
+try:
+  ibov_val = yf.Ticker("^BVSP").history(period="1d")["Close"].iloc[-1]
+  dolar_val = yf.Ticker("BRL=X").history(period="1d")["Close"].iloc[-1]
+  sp_val = yf.Ticker("^GSPC").history(period="1d")["Close"].iloc[-1]
+  petr_val = yf.Ticker("PETR4.SA").history(period="1d")["Close"].iloc[-1]
+except Exception:
+  ibov_val, dolar_val, sp_val, petr_val = (
+      128450.0,
+      4.95,
+      5120.0,
+      38.10,
+  )  # Valores de segurança caso falhe
 with col1:
-    st.metric(label="IBOVESPA", value="128.450 pts", delta="+1.2%")
+  st.metric(
+      label="IBOVESPA", value=f"{ibov_val:,.2f} pts".replace(",", "."), delta="+1.2%"
+  )
 with col2:
-    st.metric(label="DÓLAR (USD/BRL)", value="R$ 4,95", delta="-0.3%")
+  st.metric(label="DÓLAR (USD/BRL)", value=f"R$ {dolar_val:.2f}", delta="-0.3%")
 with col3:
-    st.metric(label="S&P 500", value="5.120 pts", delta="+0.8%")
+  st.metric(
+      label="S&P 500", value=f"{sp_val:,.2f} pts".replace(",", "."), delta="+0.8%"
+  )
 with col4:
-    st.metric(label="PETR4", value="R$ 38,10", delta="+2.1%")
+  st.metric(label="PETR4", value=f"R$ {petr_val:.2f}", delta="+2.1%")
 
 st.markdown("---")
 # Inicialização do Histórico e Estado de Conversa
