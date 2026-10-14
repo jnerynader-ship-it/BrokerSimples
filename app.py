@@ -1,13 +1,78 @@
 import streamlit as st
-from openai import OpenAI
 
-# Configuração da página em modo wide e tema escuro
 st.set_page_config(
-    page_title="BrokerSimples - Assistente Financeiro",
-    page_icon="🤖",
-    layout="wide"
+    page_title="BrokerSimples | Assistente Financeiro Inteligente",
+    page_icon="📈",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
+from openai import OpenAI
+
+st.markdown("### 📈 BrokerSimples - Assistente Financeiro Inteligente")
+
+st.markdown("""
+    <style>
+    .stApp {
+        background: linear-gradient(rgba(15, 23, 42, 0.88), rgba(15, 23, 42, 0.95)), 
+                    url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1920&auto=format&fit=crop');
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        color: #f8fafc !important;
+    }
+
+    [data-testid="stSidebar"] {
+        background-color: rgba(30, 41, 59, 0.95) !important;
+    }
+
+    div[data-testid="stMetricValue"], 
+    .stChatMessage, 
+    .stTextInput > div > div {
+        background-color: rgba(30, 41, 59, 0.85) !important;
+        color: #f8fafc !important;
+        border-radius: 8px;
+        backdrop-filter: blur(4px);
+    }
+
+    h1, h2, h3, h4, h5, h6, p, label, span {
+        color: #f8fafc !important;
+    }
+
+    .stButton > button {
+        background-color: #2563eb !important;
+        color: #ffffff !important;
+        border: none !important;
+        border-radius: 6px !important;
+        font-weight: 600 !important;
+    }
+
+    .stButton > button:hover {
+        background-color: #1d4ed8 !important;
+    }
+
+    [data-testid="stChatInput"] {
+        border: 1px solid #2563eb !important;
+        border-radius: 12px !important;
+        box-shadow: 0 4px 15px rgba(37, 99, 235, 0.25) !important;
+        background-color: rgba(15, 23, 42, 0.9) !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+# --- 1. Indicadores de Mercado (KPIs) ---
+st.markdown("### 📊 Visão Geral do Mercado")
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    st.metric(label="IBOVESPA", value="128.450 pts", delta="+1.2%")
+with col2:
+    st.metric(label="DÓLAR (USD/BRL)", value="R$ 4,95", delta="-0.3%")
+with col3:
+    st.metric(label="S&P 500", value="5.120 pts", delta="+0.8%")
+with col4:
+    st.metric(label="PETR4", value="R$ 38,10", delta="+2.1%")
+
+st.markdown("---")
 # Inicialização do Histórico e Estado de Conversa
 if "historico" not in st.session_state:
     st.session_state.historico = []
@@ -329,4 +394,17 @@ else:
                         st.session_state.historico.append({"role": "assistant", "content": texto_resposta})
                 except Exception as e:
                     st.error(f"Erro ao comunicar com a OpenAI: {e}")
+                    # --- 2. Disclaimer / Isenção de Responsabilidade (Rodapé) ---
+st.markdown("---")
+st.markdown(
+    """
+    <div style='text-align: center; color: #94a3b8; font-size: 12px; padding: 10px;'>
+        <strong>Aviso Legal (Disclaimer):</strong> O BrokerSimples é uma ferramenta educacional e de análise baseada em Inteligência Artificial.
+        As informações apresentadas não constituem recomendação direta de compra ou venda de ativos financeiros.
+        Invista com responsabilidade e consulte um profissional certificado antes de tomar decisões de mercado.
+    </div>
+    """,
+    unsafe_allow_html=True
+    )
+
 
