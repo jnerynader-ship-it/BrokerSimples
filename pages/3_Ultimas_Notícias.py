@@ -50,14 +50,15 @@ st.sidebar.subheader("📰 Mercado & Ativos")
 st.sidebar.info("💡 Acesse a página 'app' para usar o chat inteligente do BrokerSimples!")
 
 # ---------------------------------------------------------
-# BUSCA DE NOTÍCIAS OTIMIZADA POR ATIVO (CACHE 15 MINUTOS)
+# BUSCA DE NOTÍCIAS OTIMIZADA POR ATIVO (CACHE DE 15 MINUTOS)
 # ---------------------------------------------------------
-@st.cache_data(ttl=900)  # Atualiza automaticamente a cada 15 minutos (900 segundos)
+@st.cache_data(ttl=900)  # Atualização automática a cada 15 minutos
 def buscar_noticias_ativo(termo_busca):
     noticias = []
     links_vistos = set()
     
-    # Tentativa 1: Busca notícias do ativo nas últimas 24h
+    # 1. Prioriza notícias do dia (tempo real)
+    # 2. Fallback para as notícias mais recentes do ativo
     queries = [
         f"{termo_busca} quando:1d",
         f"{termo_busca}"
@@ -86,16 +87,17 @@ def buscar_noticias_ativo(termo_busca):
 
     return noticias[:15]
 
-def exibir_noticias_do_ativo(termo_ativo):
+def exibir_noticias_do_ativo(termo_ativo, chave_unica):
     col_header, col_btn = st.columns([4, 1])
     with col_header:
-        st.write(f"🔍 Buscando as notícias mais recentes desenvolvidas sobre **{termo_ativo}**:")
+        st.write(f"🔍 Notícias mais recentes desenvolvidas sobre **{termo_ativo}**:")
     with col_btn:
-        if st.button("🔄 Atualizar Agora"):
+        # Chave única para prevenir erro StreamlitDuplicateElementId
+        if st.button("🔄 Atualizar Agora", key=f"btn_refresh_{chave_unica}"):
             st.cache_data.clear()
             st.rerun()
 
-    with st.spinner("A carregar últimas atualizações..."):
+    with st.spinner("Busca em tempo real nas fontes de imprensa..."):
         noticias = buscar_noticias_ativo(termo_ativo)
 
     if noticias:
@@ -105,15 +107,15 @@ def exibir_noticias_do_ativo(termo_ativo):
             st.caption(f"Fonte: **{item['source']}**{data_pub}")
             st.divider()
     else:
-        st.warning(f"Nenhuma notícia recente encontrada para **{termo_ativo}**. Tente selecionar outro ativo na lista.")
+        st.warning(f"Nenhuma notícia encontrada no momento para **{termo_ativo}**.")
 
 # ---------------------------------------------------------
-# INTERFACE COM NOME DOS ATIVOS E CATEGORIAS
+# INTERFACE PRINCIPAL
 # ---------------------------------------------------------
 st.title("📰 Notícias por Ativo em Tempo Real")
 st.caption("Notícias atualizadas a cada 15 minutos para cada ação, FII, cripto ou indicador selecionado.")
 
-# Dicionários com nomes completos para melhorar a assertividade das pesquisas
+# Dicionários completos de pesquisa por categoria
 ACOES_B3 = {
     "ITUB4": "Itaú ITUB4",
     "PETR4": "Petrobras PETR4",
@@ -161,20 +163,20 @@ tab_acoes, tab_fiis, tab_rf, tab_cripto, tab_inter = st.tabs([
 
 with tab_acoes:
     codigo_acao = st.selectbox("Selecione a Ação:", list(ACOES_B3.keys()), key="sel_acao")
-    exibir_noticias_do_ativo(ACOES_B3[codigo_acao])
+    exibir_noticias_do_ativo(ACOES_B3[codigo_acao], chave_unica=f"acao_{codigo_acao}")
 
 with tab_fiis:
     codigo_fii = st.selectbox("Selecione o FII:", list(FIIS.keys()), key="sel_fii")
-    exibir_noticias_do_ativo(FIIS[codigo_fii])
+    exibir_noticias_do_ativo(FIIS[codigo_fii], chave_unica=f"fii_{codigo_fii}")
 
 with tab_rf:
     nome_rf = st.selectbox("Selecione o Indicador:", list(RENDA_FIXA.keys()), key="sel_rf")
-    exibir_noticias_do_ativo(RENDA_FIXA[nome_rf])
+    exibir_noticias_do_ativo(RENDA_FIXA[nome_rf], chave_unica=f"rf_{nome_rf}")
 
 with tab_cripto:
     nome_cripto = st.selectbox("Selecione a Criptomoeda:", list(CRIPTO.keys()), key="sel_cripto")
-    exibir_noticias_do_ativo(CRIPTO[nome_cripto])
+    exibir_noticias_do_ativo(CRIPTO[nome_cripto], chave_unica=f"cripto_{nome_cripto}")
 
 with tab_inter:
     nome_inter = st.selectbox("Selecione o Ativo Internacional:", list(INTERNACIONAL.keys()), key="sel_inter")
-    exibir_noticias_do_ativo(INTERNACIONAL[nome_inter])
+    exibir_noticias_do_ativo(INTERNACIONAL[nome_inter], chave_unica=f"inter_{nome_inter}")
