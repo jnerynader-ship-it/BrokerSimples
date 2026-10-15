@@ -3,22 +3,29 @@ import yfinance as yf
 
 st.title("🌍 Mercado Global e Ativos")
 
+# Explicação amigável no topo para facilitar a compreensão
+st.info(
+    "💡 **Como usar:** Escolha qualquer ativo logo abaixo para ver o "
+    "comportamento do preço ao longo do tempo. O gráfico mostra se o valor "
+    "subiu ou caiu de forma bem visual!"
+)
+
 TODOS_ATIVOS = {
-    "^GSPC": "S&P 500 (EUA)",
-    "^IXIC": "Nasdaq (EUA)",
-    "^DJI": "Dow Jones (EUA)",
-    "^BVSP": "Ibovespa (Brasil)",
-    "USDBRL=X": "Dólar / Real",
-    "BTC-USD": "Bitcoin",
-    "ETH-USD": "Ethereum",
-    "AAPL": "Apple",
-    "MSFT": "Microsoft",
-    "NVDA": "Nvidia",
-    "PETR4.SA": "Petrobras PN",
-    "VALE3.SA": "Vale",
-    "ITUB4.SA": "Itaú Unibanco",
-    "MXRF11.SA": "FII MXRF11",
-    "HGLG11.SA": "FII HGLG11",
+    "^GSPC": "S&P 500 (As 500 Maiores Empresas dos EUA)",
+    "^IXIC": "Nasdaq (Bolsa das Empresas de Tecnologia dos EUA)",
+    "^DJI": "Dow Jones (Bolsa Tradicional de Nova York)",
+    "^BVSP": "Ibovespa (O Principal Índice da Bolsa do Brasil)",
+    "USDBRL=X": "Dólar Comercial (Cotação frente ao Real)",
+    "BTC-USD": "Bitcoin (A Principal Criptomoeda do Mundo)",
+    "ETH-USD": "Ethereum (Segunda Maior Criptomoeda)",
+    "AAPL": "Apple (Fabricante do iPhone)",
+    "MSFT": "Microsoft (Gigante de Softwares e Tecnologia)",
+    "NVDA": "Nvidia (Líder em Placas de Vídeo e Inteligência Artificial)",
+    "PETR4.SA": "Petrobras (Ações Preferenciais - Foco em Dividendos)",
+    "VALE3.SA": "Vale (Mineração e Commodities)",
+    "ITUB4.SA": "Itaú Unibanco (Maior Banco Privado do Brasil)",
+    "MXRF11.SA": "Fundo Imobiliário MXRF11 (Papel / Papéis Imobiliários)",
+    "HGLG11.SA": "Fundo Imobiliário HGLG11 (Galpões Logísticos)",
 }
 
 indices_resumo = ["^GSPC", "^IXIC", "^DJI", "^BVSP"]
@@ -54,7 +61,7 @@ def carregar_historico_grafico(ticker_simbolo, periodo, intervalo):
     return None
 
 
-st.subheader("📊 Resumo dos Principais Índices")
+st.subheader("📊 Como estão os principais índices agora?")
 resumo = carregar_resumo_mercado(indices_resumo)
 
 col1, col2, col3, col4 = st.columns(4)
@@ -72,28 +79,28 @@ for idx, ticker in enumerate(indices_resumo):
 
 st.divider()
 
-st.subheader("📈 Gráfico de Desempenho em Tempo Real")
+st.subheader("📈 Olhada Rápida no Gráfico de Preços")
 
 col_sel1, col_sel2 = st.columns([2, 1])
 
 with col_sel1:
   ativo_selecionado = st.selectbox(
-      "Selecione o ativo:",
+      "Escolha o que deseja acompanhar:",
       options=list(TODOS_ATIVOS.keys()),
-      format_func=lambda x: f"{x} - {TODOS_ATIVOS[x]}",
+      format_func=lambda x: f"{x} — {TODOS_ATIVOS[x]}",
   )
 
 with col_sel2:
   periodo_selecionado = st.selectbox(
-      "Período:",
+      "Qual o período?",
       options=["1d", "5d", "1mo", "6mo", "1y"],
       index=2,
       format_func=lambda x: {
-          "1d": "1 Dia",
-          "5d": "5 Dias",
-          "1mo": "1 Mês",
-          "6mo": "6 Meses",
-          "1y": "1 Ano",
+          "1d": "Hoje (1 Dia)",
+          "5d": "Últimos 5 Dias",
+          "1mo": "Último Mês",
+          "6mo": "Últimos 6 Meses",
+          "1y": "Último Ano",
       }[x],
   )
 
@@ -111,9 +118,11 @@ df_grafico = carregar_historico_grafico(
 )
 
 if df_grafico is not None and not df_grafico.empty:
+  # Exibe o gráfico de forma limpa e direta
   st.line_chart(df_grafico["Close"])
-else:
-  st.warning(
-      "Não foi possível carregar os dados do gráfico para este ativo no"
-      " momento."
+  st.caption(
+      "📌 *Dica:* Cada ponto no gráfico representa o preço de fechamento no"
+      " período selecionado."
   )
+else:
+  st.warning("Ops! Não conseguimos carregar o gráfico deste ativo no momento.")
