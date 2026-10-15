@@ -29,7 +29,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# BARRA LATERAL (PAINEL ATIVO NESTA PÁGINA)
+# BARRA LATERAL UNIFICADA E PERMANENTE
 # ---------------------------------------------------------
 st.sidebar.title("💬 Histórico de Prompts")
 st.sidebar.markdown("---")
@@ -44,9 +44,38 @@ else:
     st.sidebar.caption("Nenhum histórico recente.")
 
 st.sidebar.markdown("---")
-st.sidebar.subheader("📰 Mercado & Ativos")
-st.sidebar.info("💡 Acesse a página 'app' para utilizar o chat inteligente do BrokerSimples!")
+st.sidebar.subheader("📊 Mercado & Ativos")
+st.sidebar.markdown("Navegação Rápida:")
+aba_lateral = st.sidebar.radio(
+    "Ir para:",
+    ["Chat Principal", "Últimas Notícias", "Recomendações de Compra"],
+    key="nav_sidebar_cfg"
+)
+
+if aba_lateral != "Chat Principal":
+    st.info(f"💡 Você selecionou **{aba_lateral}**. Para visualizar esta secção inteira, aceda à página principal (**app**) ou utilize a página dedicada no menu lateral.")
 
 # ---------------------------------------------------------
 # CONTEÚDO DA PÁGINA DE CONFIGURAÇÕES
-# 
+# ---------------------------------------------------------
+st.title("⚙️ Configurações da Plataforma")
+st.caption("Gerencie credenciais de acesso às APIs e parâmetros do sistema.")
+
+st.markdown("---")
+
+with st.form("form_config_api"):
+    st.subheader("🔑 Credenciais de Acesso")
+    st.text_input("Chave da API OpenAI (sk-proj-...)", type="password", key="input_openai")
+    st.text_input("Chave de Conexão Corretora / MetaTrader API", type="password", key="input_broker")
+    
+    st.selectbox(
+        "Modo de Operação Padrão da IA",
+        ["Conservador", "Moderado", "Agressivo"],
+        key="select_modo_ia"
+    )
+    
+    if st.form_submit_button("Guardar Configurações"):
+        st.success("Configurações atualizadas com sucesso!")
+
+st.markdown("---")
+st.info("ℹ️ Certifique-se de manter as suas chaves de API em segurança e nunca as partilhe publicamente.")
