@@ -4,7 +4,7 @@ import yfinance as yf
 st.title("📰 Notícias do Mercado em Tempo Real")
 
 
-# Função otimizada para buscar notícias em tempo real via yfinance
+# Função auxiliar para carregar e exibir as notícias de um ativo
 def exibir_noticias(ticker_simbolo):
   ticker = yf.Ticker(ticker_simbolo)
   noticias = ticker.news
@@ -33,7 +33,7 @@ def exibir_noticias(ticker_simbolo):
     st.info("Nenhuma notícia recente encontrada para este ativo no momento.")
 
 
-# TODAS AS AÇÕES DO IBOVESPA (Sem o sufixo .SA na tela, adicionado no backend)
+# TODAS AS AÇÕES DO IBOVESPA (Sem o sufixo .SA na interface, adicionado no backend)
 acoes_b3 = sorted([
     "ABEV3",
     "ALOS3",
@@ -120,7 +120,7 @@ acoes_b3 = sorted([
     "YDUQ3",
 ])
 
-# TODOS OS FUNDOS IMOBILIÁRIOS DO IFIX
+# TODOS OS FUNDOS IMOBILIÁRIOS DO IFIX (Sem o sufixo .SA na interface)
 fiis = sorted([
     "ALZR11",
     "ARRI11",
@@ -237,7 +237,7 @@ internacional = [
     "NFLX",
 ]
 
-# Abas do Streamlit
+# Criação das abas no Streamlit
 tab_acoes, tab_fiis, tab_rf, tab_cripto, tab_inter = st.tabs([
     "📈 Ações B3",
     "🏢 Fundos Imobiliários",
