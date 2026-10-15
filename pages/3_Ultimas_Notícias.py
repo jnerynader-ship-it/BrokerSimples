@@ -4,7 +4,7 @@ import streamlit as st
 
 st.set_page_config(page_title="Últimas Notícias | BrokerSimples", layout="wide")
 
-# Estilização padrão do app
+# Estilização visual padrão
 st.markdown("""
     <style>
     .stApp {
@@ -31,7 +31,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# BARRA LATERAL (PAINEL ATIVO NETA PÁGINA)
+# BARRA LATERAL (PAINEL COMPLETO)
 # ---------------------------------------------------------
 st.sidebar.title("💬 Histórico de Prompts")
 st.sidebar.markdown("---")
@@ -50,66 +50,131 @@ st.sidebar.subheader("📰 Mercado & Ativos")
 st.sidebar.info("💡 Acesse a página 'app' para usar o chat inteligente do BrokerSimples!")
 
 # ---------------------------------------------------------
-# CONTEÚDO DA PÁGINA
+# BUSCA DE NOTÍCIAS OTIMIZADA POR ATIVO (CACHE 15 MINUTOS)
 # ---------------------------------------------------------
-st.title("📰 Notícias do Mercado em Tempo Real")
+@st.cache_data(ttl=900)  # Atualiza automaticamente a cada 15 minutos (900 segundos)
+def buscar_noticias_ativo(termo_busca):
+    noticias = []
+    links_vistos = set()
+    
+    # Tentativa 1: Busca notícias do ativo nas últimas 24h
+    queries = [
+        f"{termo_busca} quando:1d",
+        f"{termo_busca}"
+    ]
+    
+    for q in queries:
+        if len(noticias) >= 10:
+            break
+        try:
+            q_encoded = urllib.parse.quote(q)
+            rss_url = f"https://news.google.com/rss/search?q={q_encoded}&hl=pt-BR&gl=BR&ceid=BR:pt-419"
+            feed = feedparser.parse(rss_url)
+            
+            for entry in feed.entries[:12]:
+                link = entry.get('link', '#')
+                if link not in links_vistos:
+                    links_vistos.add(link)
+                    noticias.append({
+                        'title': entry.get('title', 'Sem título'),
+                        'link': link,
+                        'source': entry.get('source', {}).get('title', 'Portal de Notícias'),
+                        'published': entry.get('published', '')
+                    })
+        except Exception:
+            pass
 
-@st.cache_data(ttl=900)
-def buscar_noticias_google_news(termo_busca):
-    try:
-        termo_encoded = urllib.parse.quote(f"{termo_busca} quando:1d")
-        rss_url = f"https://news.google.com/rss/search?q={termo_encoded}&hl=pt-BR&gl=BR&ceid=BR:pt-419"
-        feed = feedparser.parse(rss_url)
-        noticias = []
-        for entry in feed.entries[:15]:
-            noticias.append({
-                'title': entry.get('title', 'Sem título'),
-                'link': entry.get('link', '#'),
-                'source': entry.get('source', {}).get('title', 'Google News'),
-                'published': entry.get('published', '')
-            })
-        return noticias
-    except Exception:
-        return []
+    return noticias[:15]
 
-def exibir_noticias(termo_ativo):
-    noticias = buscar_noticias_google_news(termo_ativo)
+def exibir_noticias_do_ativo(termo_ativo):
+    col_header, col_btn = st.columns([4, 1])
+    with col_header:
+        st.write(f"🔍 Buscando as notícias mais recentes desenvolvidas sobre **{termo_ativo}**:")
+    with col_btn:
+        if st.button("🔄 Atualizar Agora"):
+            st.cache_data.clear()
+            st.rerun()
+
+    with st.spinner("A carregar últimas atualizações..."):
+        noticias = buscar_noticias_ativo(termo_ativo)
+
     if noticias:
-        st.write(f"Exibindo as **{len(noticias)} notícias mais recentes de hoje**:")
-        for item in noticias:
-            st.subheader(f"[{item['title']}]({item['link']})")
-            data_pub = f" | {item['published']}" if item['published'] else ""
-            st.caption(f"Fonte: {item['source']}{data_pub}")
+        for idx, item in enumerate(noticias, 1):
+            st.markdown(f"### {idx}. [{item['title']}]({item['link']})")
+            data_pub = f" | 🕒 *{item['published']}*" if item['published'] else ""
+            st.caption(f"Fonte: **{item['source']}**{data_pub}")
             st.divider()
     else:
-        st.info("Nenhuma notícia encontrada no momento.")
+        st.warning(f"Nenhuma notícia recente encontrada para **{termo_ativo}**. Tente selecionar outro ativo na lista.")
 
-acoes_b3 = sorted(["ABEV3", "B3SA3", "BBAS3", "BBDC4", "ITUB4", "PETR4", "VALE3", "WEGE3"])
-fiis = sorted(["HGLG11", "KNRI11", "MXRF11", "XPML11"])
-renda_fixa_macro = ["Dólar", "Ibovespa", "Taxa Selic", "Inflação IPCA"]
-cripto = ["Bitcoin", "Ethereum", "Solana"]
-internacional = ["S&P 500", "Nasdaq", "Apple", "Nvidia"]
+# ---------------------------------------------------------
+# INTERFACE COM NOME DOS ATIVOS E CATEGORIAS
+# ---------------------------------------------------------
+st.title("📰 Notícias por Ativo em Tempo Real")
+st.caption("Notícias atualizadas a cada 15 minutos para cada ação, FII, cripto ou indicador selecionado.")
+
+# Dicionários com nomes completos para melhorar a assertividade das pesquisas
+ACOES_B3 = {
+    "ITUB4": "Itaú ITUB4",
+    "PETR4": "Petrobras PETR4",
+    "VALE3": "Vale VALE3",
+    "BBDC4": "Bradesco BBDC4",
+    "BBAS3": "Banco do Brasil BBAS3",
+    "B3SA3": "B3 B3SA3",
+    "ABEV3": "Ambev ABEV3",
+    "WEGE3": "Weg WEGE3",
+    "MGLU3": "Magazine Luiza MGLU3",
+    "RENT3": "Localiza RENT3"
+}
+
+FIIS = {
+    "MXRF11": "Fundo Imobiliario MXRF11",
+    "HGLG11": "Fundo Imobiliario HGLG11",
+    "XPML11": "Fundo Imobiliario XPML11",
+    "KNRI11": "Fundo Imobiliario KNRI11",
+    "BTLG11": "Fundo Imobiliario BTLG11"
+}
+
+RENDA_FIXA = {
+    "Dólar": "Dólar comercial câmbio",
+    "Ibovespa": "Ibovespa bolsa de valores",
+    "Taxa Selic": "Taxa Selic Banco Central",
+    "Inflação IPCA": "Inflação IPCA IBGE"
+}
+
+CRIPTO = {
+    "Bitcoin": "Bitcoin Criptomoeda",
+    "Ethereum": "Ethereum Criptomoeda",
+    "Solana": "Solana Criptomoeda"
+}
+
+INTERNACIONAL = {
+    "S&P 500": "S&P 500 índice EUA",
+    "Nasdaq": "Nasdaq tecnologia",
+    "Apple": "Apple Ações NVDA AAPL",
+    "Nvidia": "Nvidia inteligência artificial"
+}
 
 tab_acoes, tab_fiis, tab_rf, tab_cripto, tab_inter = st.tabs([
     "📈 Ações B3", "🏢 Fundos Imobiliários", "💵 Renda Fixa / Macro", "🪙 Criptomoedas", "🌐 Internacional"
 ])
 
 with tab_acoes:
-    ativo = st.selectbox("Selecione a Ação:", acoes_b3, key="acoes")
-    exibir_noticias(f"{ativo} ação B3")
+    codigo_acao = st.selectbox("Selecione a Ação:", list(ACOES_B3.keys()), key="sel_acao")
+    exibir_noticias_do_ativo(ACOES_B3[codigo_acao])
 
 with tab_fiis:
-    ativo = st.selectbox("Selecione o FII:", fiis, key="fiis")
-    exibir_noticias(f"{ativo} fundo imobiliario")
+    codigo_fii = st.selectbox("Selecione o FII:", list(FIIS.keys()), key="sel_fii")
+    exibir_noticias_do_ativo(FIIS[codigo_fii])
 
 with tab_rf:
-    ativo = st.selectbox("Selecione o Indicador:", renda_fixa_macro, key="rf")
-    exibir_noticias(ativo)
+    nome_rf = st.selectbox("Selecione o Indicador:", list(RENDA_FIXA.keys()), key="sel_rf")
+    exibir_noticias_do_ativo(RENDA_FIXA[nome_rf])
 
 with tab_cripto:
-    ativo = st.selectbox("Selecione a Criptomoeda:", cripto, key="cripto")
-    exibir_noticias(ativo)
+    nome_cripto = st.selectbox("Selecione a Criptomoeda:", list(CRIPTO.keys()), key="sel_cripto")
+    exibir_noticias_do_ativo(CRIPTO[nome_cripto])
 
 with tab_inter:
-    ativo = st.selectbox("Selecione o Ativo Internacional:", internacional, key="inter")
-    exibir_noticias(ativo)
+    nome_inter = st.selectbox("Selecione o Ativo Internacional:", list(INTERNACIONAL.keys()), key="sel_inter")
+    exibir_noticias_do_ativo(INTERNACIONAL[nome_inter])
