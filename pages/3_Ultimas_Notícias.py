@@ -1,4 +1,3 @@
-import time
 import streamlit as st
 import yfinance as yf
 
@@ -14,7 +13,6 @@ def carregar_noticias_com_cache(ticker_simbolo):
 
 # Função auxiliar para exibir as notícias na tela
 def exibir_noticias(ticker_simbolo):
-  # Exibe um indicador visual de quando os dados foram buscados
   noticias = carregar_noticias_com_cache(ticker_simbolo)
 
   if noticias:
@@ -245,14 +243,14 @@ internacional = [
     "NFLX",
 ]
 
-# Abas do Streamlit
+# Abas do Streamlit (Sintaxe corrigida)
 tab_acoes, tab_fiis, tab_rf, tab_cripto, tab_inter = st.tabs([
     "📈 Ações B3",
     "🏢 Fundos Imobiliários",
     "💵 Renda Fixa / Macro",
     "🪙 Criptomoedas",
     "🌐 Internacional",
-]
+])
 
 with tab_acoes:
   ativo = st.selectbox("Selecione a Ação:", acoes_b3, key="acoes")
