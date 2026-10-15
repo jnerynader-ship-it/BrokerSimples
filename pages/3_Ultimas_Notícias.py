@@ -1,61 +1,42 @@
 import streamlit as st
-import yfinance as yf
+import feedparser
+import urllib.parse
 
 st.title("📰 Notícias do Mercado em Tempo Real")
 
-
-# Função com cache de 1 hora para buscar notícias
+# Função para buscar notícias reais via RSS do Google News BR
 @st.cache_data(ttl=3600)
-def carregar_noticias_com_cache(ticker_simbolo):
-  try:
-    t = yf.Ticker(ticker_simbolo)
-    noticias = t.news
-    if noticias:
-      return noticias
-  except Exception:
-    pass
-  
-  # Plano de contingência: se o ativo específico não tiver notícias, busca do Ibovespa geral
-  try:
-    t_fallback = yf.Ticker("^BVSP")
-    return t_fallback.news
-  except Exception:
-    return []
-
+def buscar_noticias_google_news(termo_busca):
+    try:
+        # Prepara o termo de busca para a URL
+        termo_encoded = urllib.parse.quote(termo_busca)
+        # URL do RSS do Google News em Português (Brasil)
+        rss_url = f"https://news.google.com/rss/search?q={termo_encoded}&hl=pt-BR&gl=BR&ceid=BR:pt-419"
+        
+        feed = feedparser.parse(rss_url)
+        
+        noticias = []
+        for entry in feed.entries[:5]: # Pega as 5 mais recentes
+            noticias.append({
+                'title': entry.get('title', 'Sem título'),
+                'link': entry.get('link', '#'),
+                'source': entry.get('source', {}).get('title', 'Google News')
+            })
+        return noticias
+    except Exception:
+        return []
 
 # Função auxiliar para exibir as notícias na tela
-def exibir_noticias(ticker_simbolo):
-  noticias = carregar_noticias_com_cache(ticker_simbolo)
+def exibir_noticias(termo_ativo):
+    noticias = buscar_noticias_google_news(termo_ativo)
 
-  if noticias:
-    st.markdown(f"*Exibindo as notícias mais recentes para o mercado:*")
-    for item in noticias[:5]:  # Exibe as 5 notícias mais recentes
-      content = item.get("content", {})
-      titulo = (
-          item.get("title")
-          or content.get("title")
-          or item.get("headline")
-          or "Sem título"
-      )
-      
-      link_obj = item.get("link") or content.get("canonicalUrl") or content.get("clickThroughUrl")
-      if isinstance(link_obj, dict):
-        link = link_obj.get("url", "#")
-      else:
-        link = link_obj if link_obj else "#"
-
-      publisher = item.get("publisher") or content.get("provider")
-      if isinstance(publisher, dict):
-        fonte = publisher.get("displayName", "Fonte desconhecida")
-      else:
-        fonte = publisher if publisher else "Fonte desconhecida"
-
-      st.subheader(f"[{titulo}]({link})")
-      st.caption(f"Fonte: {fonte}")
-      st.divider()
-  else:
-    st.info("Nenhuma notícia recente encontrada no momento.")
-
+    if noticias:
+        for item in noticias:
+            st.subheader(f"[{item['title']}]({item['link']})")
+            st.caption(f"Fonte: {item['source']}")
+            st.divider()
+    else:
+        st.info("Nenhuma notícia recente encontrada no momento.")
 
 # TODAS AS AÇÕES DO IBOVESPA
 acoes_b3 = sorted([
@@ -88,17 +69,11 @@ fiis = sorted([
     "VSLH11", "VTLT11", "VVPR11", "XPCI11", "XPIN11", "XPLG11", "XPML11", "XPSF11"
 ])
 
-renda_fixa_macro = ["USDBRL=X", "BRL=X", "EURBRL=X", "^BVSP", "^TNX"]
+renda_fixa_macro = ["Dólar", "Ibovespa", "Taxa Selic", "Inflação IPCA", "Juros Futuros"]
 
-cripto = [
-    "BTC-USD", "ETH-USD", "SOL-USD", "BNB-USD", "XRP-USD", 
-    "ADA-USD", "DOGE-USD", "AVAX-USD", "LINK-USD"
-]
+cripto = ["Bitcoin", "Ethereum", "Solana", "Binance Coin", "Ripple XRP", "Cardano"]
 
-internacional = [
-    "^GSPC", "^IXIC", "^DJI", "AAPL", "MSFT", "NVDA", 
-    "AMZN", "GOOGL", "META", "TSLA", "NFLX"
-]
+internacional = ["S&P 500", "Nasdaq", "Apple", "Microsoft", "Nvidia", "Tesla", "Amazon"]
 
 # Abas do Streamlit
 tab_acoes, tab_fiis, tab_rf, tab_cripto, tab_inter = st.tabs([
@@ -107,14 +82,14 @@ tab_acoes, tab_fiis, tab_rf, tab_cripto, tab_inter = st.tabs([
 
 with tab_acoes:
     ativo = st.selectbox("Selecione a Ação:", acoes_b3, key="acoes")
-    exibir_noticias(ativo + ".SA")
+    exibir_noticias(f"{ativo} ação B3")
 
 with tab_fiis:
     ativo = st.selectbox("Selecione o FII:", fiis, key="fiis")
-    exibir_noticias(ativo + ".SA")
+    exibir_noticias(f"{ativo} fundo imobiliario")
 
 with tab_rf:
-    ativo = st.selectbox("Selecione o Índice/Moeda:", renda_fixa_macro, key="rf")
+    ativo = st.selectbox("Selecione o Indicador:", renda_fixa_macro, key="rf")
     exibir_noticias(ativo)
 
 with tab_cripto:
