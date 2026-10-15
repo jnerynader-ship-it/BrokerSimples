@@ -4,11 +4,15 @@ import yfinance as yf
 st.title("📰 Notícias do Mercado em Tempo Real")
 
 
-# Função com cache de 1 hora (3600 segundos) para atualizar as notícias periodicamente
+# Função com cache de 1 hora e tratamento robusto de erros para o yfinance
 @st.cache_data(ttl=3600)
 def carregar_noticias_com_cache(ticker_simbolo):
-  ticker = yf.Ticker(ticker_simbolo)
-  return ticker.news
+  try:
+    t = yf.Ticker(ticker_simbolo)
+    noticias = t.news
+    return noticias if noticias else []
+  except Exception:
+    return []
 
 
 # Função auxiliar para exibir as notícias na tela
@@ -17,26 +21,35 @@ def exibir_noticias(ticker_simbolo):
 
   if noticias:
     for item in noticias[:5]:  # Exibe as 5 notícias mais recentes
+      # Tratamento flexível para diferentes formatos que o yfinance retorna
+      content = item.get("content", {})
       titulo = (
           item.get("title")
-          or item.get("content", {}).get("title", "Sem título")
+          or content.get("title")
+          or item.get("headline")
+          or "Sem título"
       )
-      link = (
-          item.get("link")
-          or item.get("content", {}).get("canonicalUrl", {}).get("url", "#")
-      )
-      fonte = (
-          item.get("publisher")
-          or item.get("content", {}).get("provider", {}).get(
-              "displayName", "Fonte desconhecida"
-          )
-      )
+      
+      link_obj = item.get("link") or content.get("canonicalUrl") or content.get("clickThroughUrl")
+      if isinstance(link_obj, dict):
+        link = link_obj.get("url", "#")
+      else:
+        link = link_obj if link_obj else "#"
+
+      publisher = item.get("publisher") or content.get("provider")
+      if isinstance(publisher, dict):
+        fonte = publisher.get("displayName", "Fonte desconhecida")
+      else:
+        fonte = publisher if publisher else "Fonte desconhecida"
 
       st.subheader(f"[{titulo}]({link})")
       st.caption(f"Fonte: {fonte}")
       st.divider()
   else:
-    st.info("Nenhuma notícia recente encontrada para este ativo no momento.")
+    # Tenta buscar um ativo macro global equivalente ou avisa o utilizador
+    st.info(
+        f"A API do Yahoo Finance não retornou notícias recentes para **{ticker_simbolo}**. Tente selecionar outro ativo (como PETR3, VALE3 ou BTC-USD) enquanto o mercado atualiza."
+    )
 
 
 # TODAS AS AÇÕES DO IBOVESPA
@@ -243,7 +256,7 @@ internacional = [
     "NFLX",
 ]
 
-# Abas do Streamlit (Sintaxe corrigida)
+# Abas do Streamlit
 tab_acoes, tab_fiis, tab_rf, tab_cripto, tab_inter = st.tabs([
     "📈 Ações B3",
     "🏢 Fundos Imobiliários",
