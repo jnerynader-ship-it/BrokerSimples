@@ -77,4 +77,39 @@ with col_sel1:
       format_func=lambda x: f"{x} - {indices_globais[x]}",
   )
 
-with col_sel
+with col_sel2:
+  periodo_selecionado = st.selectbox(
+      "Período:",
+      options=["1d", "5d", "1mo", "6mo", "1y", "5y"],
+      index=2,
+      format_func=lambda x: {
+          "1d": "1 Dia",
+          "5d": "5 Dias",
+          "1mo": "1 Mês",
+          "6mo": "6 Meses",
+          "1y": "1 Ano",
+          "5y": "5 Anos",
+      }[x],
+  )
+
+intervalo_map = {
+    "1d": "5m",
+    "5d": "15m",
+    "1mo": "1d",
+    "6mo": "1d",
+    "1y": "1wk",
+    "5y": "1mo",
+}
+intervalo = intervalo_map.get(periodo_selecionado, "1d")
+
+df_grafico = carregar_historico_grafico(
+    ativo_selecionado, periodo_selecionado, intervalo
+)
+
+if df_grafico is not None and not df_grafico.empty:
+  st.line_chart(df_grafico["Close"])
+else:
+  st.warning(
+      "Não foi possível carregar os dados do gráfico para este ativo no"
+      " momento."
+  )
