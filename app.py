@@ -6,7 +6,7 @@ from openai import OpenAI
 import streamlit as st
 import yfinance as yf
 
-# Configuração inicial
+# Configuração inicial do app
 st.set_page_config(
     page_title="BrokerSimples | Assistente Financeiro Inteligente",
     page_icon="📈",
@@ -14,7 +14,11 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Estilização do app
+# --- OPÇÃO 1: LOGO NATIVA NO TOPO ESQUERDO DA BARRA LATERAL ---
+if os.path.exists("logo.png"):
+  st.logo("logo.png", icon_image="logo.png")
+
+# Estilização visual padrão
 st.markdown(
     """
     <style>
@@ -105,12 +109,7 @@ if "historico" not in st.session_state:
 if "selected_prompt" not in st.session_state:
   st.session_state.selected_prompt = ""
 
-# --- BARRA LATERAL UNIFICADA COM PROTEÇÃO PARA A LOGO ---
-if os.path.exists("logo.png"):
-  st.sidebar.image("logo.png", width=90)
-else:
-  st.sidebar.markdown("### 🤖 **BrokerSimples**")
-
+# --- BARRA LATERAL UNIFICADA ---
 st.sidebar.title("💬 Histórico de Prompts")
 st.sidebar.markdown("---")
 
