@@ -2,7 +2,6 @@ import streamlit as st
 
 st.set_page_config(page_title="Configurações API | BrokerSimples", layout="wide")
 
-# Estilização padrão do app
 st.markdown("""
     <style>
     .stApp {
@@ -28,9 +27,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ---------------------------------------------------------
-# BARRA LATERAL UNIFICADA E PERMANENTE
-# ---------------------------------------------------------
+# BARRA LATERAL COM LOGO
+st.sidebar.image("logo.png", width=90)
 st.sidebar.title("💬 Histórico de Prompts")
 st.sidebar.markdown("---")
 
@@ -53,11 +51,9 @@ aba_lateral = st.sidebar.radio(
 )
 
 if aba_lateral != "Chat Principal":
-    st.info(f"💡 Você selecionou **{aba_lateral}**. Para visualizar esta secção inteira, aceda à página principal (**app**) ou utilize a página dedicada no menu lateral.")
+    st.info(f"💡 Você selecionou **{aba_lateral}**. Para visualizar esta secção inteira, aceda à página principal (**app**).")
 
-# ---------------------------------------------------------
-# CONTEÚDO DA PÁGINA DE CONFIGURAÇÕES
-# ---------------------------------------------------------
+# CONTEÚDO
 st.title("⚙️ Configurações da Plataforma")
 st.caption("Gerencie credenciais de acesso às APIs e parâmetros do sistema.")
 
