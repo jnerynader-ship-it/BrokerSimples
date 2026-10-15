@@ -4,6 +4,7 @@ from openai import OpenAI
 import streamlit as st
 import yfinance as yf
 
+# Configuração da página do Streamlit
 st.set_page_config(
     page_title="BrokerSimples | Assistente Financeiro Inteligente",
     page_icon="📈",
@@ -13,6 +14,7 @@ st.set_page_config(
 
 st.markdown("### 📈 BrokerSimples - Assistente Financeiro Inteligente")
 
+# Estilização em CSS
 st.markdown(
     """
     <style>
@@ -96,7 +98,7 @@ with col4:
 
 st.markdown("---")
 
-# Inicialização do Histórico
+# Inicialização do Histórico e Estado de Conversa
 if "historico" not in st.session_state:
   st.session_state.historico = []
 
@@ -104,7 +106,7 @@ if "selected_prompt" not in st.session_state:
   st.session_state.selected_prompt = ""
 
 # ---------------------------------------------------------
-# BARRA LATERAL
+# BARRA LATERAL (HISTÓRICO E NAVEGAÇÃO)
 # ---------------------------------------------------------
 st.sidebar.title("💬 Histórico de Prompts")
 st.sidebar.markdown("---")
@@ -131,7 +133,7 @@ aba_lateral = st.sidebar.radio(
 )
 
 # ---------------------------------------------------------
-# VERIFICAÇÃO DA CHAVE DE API
+# VERIFICAÇÃO DA CHAVE DE API (OPENAI)
 # ---------------------------------------------------------
 try:
   api_key = st.secrets["OPENAI_API_KEY"]
@@ -149,41 +151,41 @@ else:
 
 
 # ---------------------------------------------------------
-# FUNÇÃO DO RADAR DE NOTÍCIAS (EXPANDIDO PARA MAIS MATÉRIAS)
+# FUNÇÃO DO RADAR DE NOTÍCIAS EM TEMPO REAL (CACHE DE 15 MIN)
 # ---------------------------------------------------------
-@st.cache_data(ttl=1800)  # Atualiza a cada 30 minutos (1800s)
+@st.cache_data(ttl=900)  # Renovação automática a cada 15 minutos
 def carregar_radar_economico_global():
-  topicos = [
-      "economia global bancos centrais inflacao",
-      "fed juros estados unidos mercado financeiro",
-      "politica monetaria europa china investimentos",
-      "crise geopolitica commodities petroleo ouro mercado b3",
+  # Termos estratégicos com busca estrita de últimas 24h (quando:1d)
+  topicos_tempo_real = [
+      "mercado financeiro ao vivo quando:1d",
+      "ibovespa hoje bolsa quando:1d",
+      "bancos centrais juros inflacao quando:1d",
+      "dolar economia global quando:1d",
   ]
 
   noticias = []
   links_vistos = set()
 
-  for termo in topicos:
+  for termo in topicos_tempo_real:
     try:
       termo_encoded = urllib.parse.quote(termo)
       url = f"https://news.google.com/rss/search?q={termo_encoded}&hl=pt-BR&gl=BR&ceid=BR:pt-419"
       feed = feedparser.parse(url)
 
-      # Pega mais matérias por tópico
-      for entry in feed.entries[:8]:
+      for entry in feed.entries[:6]:
         link = entry.get("link", "#")
         if link not in links_vistos:
           links_vistos.add(link)
           noticias.append({
               "titulo": entry.get("title", "Sem título"),
               "link": link,
-              "fonte": entry.get("source", {}).get("title", "Google News"),
+              "fonte": entry.get("source", {}).get("title", "Fonte de Notícias"),
               "data": entry.get("published", ""),
           })
     except Exception:
       pass
 
-  return noticias[:16]  # Retorna até 16 matérias ordenadas
+  return noticias[:16]
 
 
 # ---------------------------------------------------------
@@ -192,8 +194,8 @@ def carregar_radar_economico_global():
 if aba_lateral == "Últimas Notícias":
   st.header("🔥 Radar de Notícias: O que está a Mover o Mercado Global & B3")
   st.caption(
-      "Atualizado automaticamente a cada 30 minutos. Matérias mais recentes no"
-      " topo."
+      "⚡ Atualizado em tempo real com matérias de hoje (InfoMoney, Bloomberg"
+      " Línea, Valor Econômico, Reuters)."
   )
   st.markdown("---")
 
@@ -207,22 +209,19 @@ if aba_lateral == "Últimas Notícias":
       st.subheader("🌐 Cenário Internacional & Bancos Centrais")
       for idx, item in enumerate(noticias_ao_vivo[:metade], 1):
         st.markdown(f"**{idx}. [{item['titulo']}]({item['link']})**")
-        data_str = f" | {item['data']}" if item["data"] else ""
-        st.caption(f"Fonte: {item['fonte']}{data_str}")
+        data_str = f" 🕒 *{item['data']}*" if item["data"] else ""
+        st.caption(f"Fonte: **{item['fonte']}**{data_str}")
         st.divider()
 
     with col2:
       st.subheader("📊 Macroeconomia & Geopolítica Global")
       for idx, item in enumerate(noticias_ao_vivo[metade:], metade + 1):
         st.markdown(f"**{idx}. [{item['titulo']}]({item['link']})**")
-        data_str = f" | {item['data']}" if item["data"] else ""
-        st.caption(f"Fonte: {item['fonte']}{data_str}")
+        data_str = f" 🕒 *{item['data']}*" if item["data"] else ""
+        st.caption(f"Fonte: **{item['fonte']}**{data_str}")
         st.divider()
   else:
-    st.info(
-        "A carregar notícias em tempo real... Por favor, aguarde alguns"
-        " instantes."
-    )
+    st.info("A carregar as notícias mais recentes do mercado...")
 
 elif aba_lateral == "Recomendações de Compra":
   st.header("📈 Ações Recomendadas & Análise de Ativos")
