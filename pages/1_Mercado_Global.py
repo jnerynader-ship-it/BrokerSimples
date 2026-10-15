@@ -1,19 +1,65 @@
 import streamlit as st
 import yfinance as yf
 
-st.title("🌍 Mercado Global")
+st.title("🌍 Mercado Global e Ativos")
 
-# Lista dos principais índices
-indices_globais = {
-    "^GSPC": "S&P 500",
-    "^IXIC": "Nasdaq",
-    "^DJI": "Dow Jones",
-    "^FTSE": "FTSE 100",
-    "^N225": "Nikkei 225",
+# Dicionário organizado com TODOS os ativos possíveis
+TODOS_ATIVOS = {
+    # --- ÍNDICES E MACRO GLOBAL ---
+    "^GSPC": "S&P 500 (EUA)",
+    "^IXIC": "Nasdaq (EUA)",
+    "^DJI": "Dow Jones (EUA)",
+    "^BVSP": "Ibovespa (Brasil)",
+    "^FTSE": "FTSE 100 (Londres)",
+    "^N225": "Nikkei 225 (Japão)",
+    # --- MOEDAS E MACRO ---
+    "USDBRL=X": "Dólar / Real",
+    "EURBRL=X": "Euro / Real",
+    "BRL=X": "Real / Dólar",
+    "^TNX": "Treasury 10 Anos (EUA)",
+    # --- CRIPTOMOEDAS ---
+    "BTC-USD": "Bitcoin",
+    "ETH-USD": "Ethereum",
+    "SOL-USD": "Solana",
+    "BNB-USD": "Binance Coin",
+    "XRP-USD": "XRP",
+    "ADA-USD": "Cardano",
+    "DOGE-USD": "Dogecoin",
+    "AVAX-USD": "Avalanche",
+    "LINK-USD": "Chainlink",
+    # --- INTERNACIONAIS (BIG TECHS & OUTRAS) ---
+    "AAPL": "Apple",
+    "MSFT": "Microsoft",
+    "NVDA": "Nvidia",
+    "AMZN": "Amazon",
+    "GOOGL": "Alphabet (Google)",
+    "META": "Meta (Facebook)",
+    "TSLA": "Tesla",
+    "NFLX": "Netflix",
+    # --- AÇÕES B3 (EXEMPLOS PRINCIPAIS) ---
+    "PETR4.SA": "Petrobras PN",
+    "PETR3.SA": "Petrobras ON",
+    "VALE3.SA": "Vale",
+    "ITUB4.SA": "Itaú Unibanco",
+    "BBDC4.SA": "Bradesco",
+    "BBAS3.SA": "Banco do Brasil",
+    "ABEV3.SA": "Ambev",
+    "WEGE3.SA": "Weg",
+    "RENT3.SA": "Localiza",
+    "MGLU3.SA": "Magazine Luiza",
+    # --- FUNDOS IMOBILIÁRIOS (IFIX) ---
+    "MXRF11.SA": "FII MXRF11",
+    "HGLG11.SA": "FII HGLG11",
+    "XPML11.SA": "FII XPML11",
+    "KNCR11.SA": "FII KNCR11",
+    "BTLG11.SA": "FII BTLG11",
+    "VISC11.SA": "FII VISC11",
 }
 
+indices_resumo = ["^GSPC", "^IXIC", "^DJI", "^BVSP", "^FTSE", "^N225"]
 
-# Cache de 1 hora para buscar cotações atuais
+
+# Cache de 1 hora para as métricas do topo
 @st.cache_data(ttl=3600)
 def carregar_resumo_mercado(tickers):
   dados = {}
@@ -34,7 +80,7 @@ def carregar_resumo_mercado(tickers):
   return dados
 
 
-# Cache de 1 hora para os dados do gráfico
+# Cache de 1 hora para carregar os dados do gráfico
 @st.cache_data(ttl=3600)
 def carregar_historico_grafico(ticker_simbolo, periodo, intervalo):
   try:
@@ -45,17 +91,18 @@ def carregar_historico_grafico(ticker_simbolo, periodo, intervalo):
     return None
 
 
-st.subheader("📊 Principais Índices do Mundo")
+st.subheader("📊 Resumo dos Principais Índices")
 
-# Exibição dos cards de topo (métricas)
-resumo = carregar_resumo_mercado(list(indices_globais.keys()))
+# Métricas do topo
+resumo = carregar_resumo_mercado(indices_resumo)
 
 col1, col2, col3 = st.columns(3)
 colunas = [col1, col2, col3]
 
-for idx, (ticker, nome) in enumerate(indices_globais.items()):
+for idx, ticker in enumerate(indices_resumo):
   col = colunas[idx % 3]
   info = resumo.get(ticker)
+  nome = TODOS_ATIVOS.get(ticker, ticker)
   if info:
     col.metric(
         label=f"{ticker} ({nome})",
@@ -65,51 +112,26 @@ for idx, (ticker, nome) in enumerate(indices_globais.items()):
 
 st.divider()
 
-# Seção do Gráfico Interativo no lugar das notícias
+# Seção do Gráfico Interativo com TODOS OS ATIVOS
 st.subheader("📈 Gráfico de Desempenho em Tempo Real")
 
 col_sel1, col_sel2 = st.columns([2, 1])
 
 with col_sel1:
   ativo_selecionado = st.selectbox(
-      "Selecione o Índice/Ativo para visualizar:",
-      options=list(indices_globais.keys()),
-      format_func=lambda x: f"{x} - {indices_globais[x]}",
+      "Selecione QUALQUER ativo do sistema:",
+      options=list(TODOS_ATIVOS.keys()),
+      format_func=lambda x: f"{x} - {TODOS_ATIVOS[x]}",
   )
 
 with col_sel2:
   periodo_selecionado = st.selectbox(
       "Período:",
       options=["1d", "5d", "1mo", "6mo", "1y", "5y"],
-      index=2,
+      index=2,  # Padrão: 1 Mês
       format_func=lambda x: {
           "1d": "1 Dia",
           "5d": "5 Dias",
           "1mo": "1 Mês",
           "6mo": "6 Meses",
-          "1y": "1 Ano",
-          "5y": "5 Anos",
-      }[x],
-  )
-
-intervalo_map = {
-    "1d": "5m",
-    "5d": "15m",
-    "1mo": "1d",
-    "6mo": "1d",
-    "1y": "1wk",
-    "5y": "1mo",
-}
-intervalo = intervalo_map.get(periodo_selecionado, "1d")
-
-df_grafico = carregar_historico_grafico(
-    ativo_selecionado, periodo_selecionado, intervalo
-)
-
-if df_grafico is not None and not df_grafico.empty:
-  st.line_chart(df_grafico["Close"])
-else:
-  st.warning(
-      "Não foi possível carregar os dados do gráfico para este ativo no"
-      " momento."
-  )
+          "1
