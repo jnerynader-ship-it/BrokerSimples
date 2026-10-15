@@ -93,7 +93,8 @@ if "historico" not in st.session_state:
 if "selected_prompt" not in st.session_state:
     st.session_state.selected_prompt = ""
 
-# --- BARRA LATERAL UNIFICADA ---
+# --- BARRA LATERAL UNIFICADA COM LOGO ---
+st.sidebar.image("logo.png", width=90)
 st.sidebar.title("💬 Histórico de Prompts")
 st.sidebar.markdown("---")
 
@@ -106,7 +107,7 @@ if st.session_state.historico:
                 st.session_state.selected_prompt = resumo if isinstance(resumo, str) else ""
 
 st.sidebar.markdown("---")
-st.sidebar.subheader("📰 Mercado & Ativos")
+st.sidebar.subheader("📊 Mercado & Ativos")
 aba_lateral = st.sidebar.radio(
     "Navegação Rápida:",
     ["Chat Principal", "Últimas Notícias", "Recomendações de Compra"]
