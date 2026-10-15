@@ -4,7 +4,6 @@ import streamlit as st
 
 st.set_page_config(page_title="Últimas Notícias | BrokerSimples", layout="wide")
 
-# Estilização visual padrão
 st.markdown("""
     <style>
     .stApp {
@@ -30,9 +29,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ---------------------------------------------------------
-# BARRA LATERAL UNIFICADA E PERMANENTE
-# ---------------------------------------------------------
+# BARRA LATERAL COM LOGO
+st.sidebar.image("logo.png", width=90)
 st.sidebar.title("💬 Histórico de Prompts")
 st.sidebar.markdown("---")
 
@@ -55,20 +53,13 @@ aba_lateral = st.sidebar.radio(
 )
 
 if aba_lateral != "Chat Principal":
-    st.info(f"💡 Você selecionou **{aba_lateral}**. Para visualizar esta secção inteira, aceda à página principal (**app**) ou utilize o menu lateral.")
+    st.info(f"💡 Você selecionou **{aba_lateral}**. Para visualizar esta secção inteira, aceda à página principal (**app**).")
 
-# ---------------------------------------------------------
-# BUSCA DE NOTÍCIAS OTIMIZADA POR ATIVO (CACHE DE 15 MINUTOS)
-# ---------------------------------------------------------
-@st.cache_data(ttl=900)  # Atualização automática a cada 15 minutos
+@st.cache_data(ttl=900)
 def buscar_noticias_ativo(termo_busca):
     noticias = []
     links_vistos = set()
-    
-    queries = [
-        f"{termo_busca} quando:1d",
-        f"{termo_busca}"
-    ]
+    queries = [f"{termo_busca} quando:1d", f"{termo_busca}"]
     
     for q in queries:
         if len(noticias) >= 10:
@@ -90,7 +81,6 @@ def buscar_noticias_ativo(termo_busca):
                     })
         except Exception:
             pass
-
     return noticias[:15]
 
 def exibir_noticias_do_ativo(termo_ativo, chave_unica):
@@ -98,7 +88,6 @@ def exibir_noticias_do_ativo(termo_ativo, chave_unica):
     with col_header:
         st.write(f"🔍 Notícias mais recentes desenvolvidas sobre **{termo_ativo}**:")
     with col_btn:
-        # Chave única para prevenir erro StreamlitDuplicateElementId
         if st.button("🔄 Atualizar Agora", key=f"btn_refresh_{chave_unica}"):
             st.cache_data.clear()
             st.rerun()
@@ -115,51 +104,28 @@ def exibir_noticias_do_ativo(termo_ativo, chave_unica):
     else:
         st.warning(f"Nenhuma notícia encontrada no momento para **{termo_ativo}**.")
 
-# ---------------------------------------------------------
-# INTERFACE PRINCIPAL
-# ---------------------------------------------------------
 st.title("📰 Notícias por Ativo em Tempo Real")
 st.caption("Notícias atualizadas a cada 15 minutos para cada ação, FII, cripto ou indicador selecionado.")
 
 ACOES_B3 = {
-    "ITUB4": "Itaú ITUB4",
-    "PETR4": "Petrobras PETR4",
-    "VALE3": "Vale VALE3",
-    "BBDC4": "Bradesco BBDC4",
-    "BBAS3": "Banco do Brasil BBAS3",
-    "B3SA3": "B3 B3SA3",
-    "ABEV3": "Ambev ABEV3",
-    "WEGE3": "Weg WEGE3",
-    "MGLU3": "Magazine Luiza MGLU3",
-    "RENT3": "Localiza RENT3"
+    "ITUB4": "Itaú ITUB4", "PETR4": "Petrobras PETR4", "VALE3": "Vale VALE3",
+    "BBDC4": "Bradesco BBDC4", "BBAS3": "Banco do Brasil BBAS3", "B3SA3": "B3 B3SA3",
+    "ABEV3": "Ambev ABEV3", "WEGE3": "Weg WEGE3", "MGLU3": "Magazine Luiza MGLU3", "RENT3": "Localiza RENT3"
 }
-
 FIIS = {
-    "MXRF11": "Fundo Imobiliario MXRF11",
-    "HGLG11": "Fundo Imobiliario HGLG11",
-    "XPML11": "Fundo Imobiliario XPML11",
-    "KNRI11": "Fundo Imobiliario KNRI11",
-    "BTLG11": "Fundo Imobiliario BTLG11"
+    "MXRF11": "Fundo Imobiliario MXRF11", "HGLG11": "Fundo Imobiliario HGLG11",
+    "XPML11": "Fundo Imobiliario XPML11", "KNRI11": "Fundo Imobiliario KNRI11", "BTLG11": "Fundo Imobiliario BTLG11"
 }
-
 RENDA_FIXA = {
-    "Dólar": "Dólar comercial câmbio",
-    "Ibovespa": "Ibovespa bolsa de valores",
-    "Taxa Selic": "Taxa Selic Banco Central",
-    "Inflação IPCA": "Inflação IPCA IBGE"
+    "Dólar": "Dólar comercial câmbio", "Ibovespa": "Ibovespa bolsa de valores",
+    "Taxa Selic": "Taxa Selic Banco Central", "Inflação IPCA": "Inflação IPCA IBGE"
 }
-
 CRIPTO = {
-    "Bitcoin": "Bitcoin Criptomoeda",
-    "Ethereum": "Ethereum Criptomoeda",
-    "Solana": "Solana Criptomoeda"
+    "Bitcoin": "Bitcoin Criptomoeda", "Ethereum": "Ethereum Criptomoeda", "Solana": "Solana Criptomoeda"
 }
-
 INTERNACIONAL = {
-    "S&P 500": "S&P 500 índice EUA",
-    "Nasdaq": "Nasdaq tecnologia",
-    "Apple": "Apple Ações NVDA AAPL",
-    "Nvidia": "Nvidia inteligência artificial"
+    "S&P 500": "S&P 500 índice EUA", "Nasdaq": "Nasdaq tecnologia",
+    "Apple": "Apple Ações NVDA AAPL", "Nvidia": "Nvidia inteligência artificial"
 }
 
 tab_acoes, tab_fiis, tab_rf, tab_cripto, tab_inter = st.tabs([
