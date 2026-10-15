@@ -31,7 +31,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# BARRA LATERAL (PAINEL COMPLETO)
+# BARRA LATERAL UNIFICADA E PERMANENTE
 # ---------------------------------------------------------
 st.sidebar.title("💬 Histórico de Prompts")
 st.sidebar.markdown("---")
@@ -46,8 +46,16 @@ else:
     st.sidebar.caption("Nenhum histórico recente.")
 
 st.sidebar.markdown("---")
-st.sidebar.subheader("📰 Mercado & Ativos")
-st.sidebar.info("💡 Acesse a página 'app' para usar o chat inteligente do BrokerSimples!")
+st.sidebar.subheader("📊 Mercado & Ativos")
+st.sidebar.markdown("Navegação Rápida:")
+aba_lateral = st.sidebar.radio(
+    "Ir para:",
+    ["Chat Principal", "Últimas Notícias", "Recomendações de Compra"],
+    key="nav_sidebar_news"
+)
+
+if aba_lateral != "Chat Principal":
+    st.info(f"💡 Você selecionou **{aba_lateral}**. Para visualizar esta secção inteira, aceda à página principal (**app**) ou utilize o menu lateral.")
 
 # ---------------------------------------------------------
 # BUSCA DE NOTÍCIAS OTIMIZADA POR ATIVO (CACHE DE 15 MINUTOS)
@@ -57,8 +65,6 @@ def buscar_noticias_ativo(termo_busca):
     noticias = []
     links_vistos = set()
     
-    # 1. Prioriza notícias do dia (tempo real)
-    # 2. Fallback para as notícias mais recentes do ativo
     queries = [
         f"{termo_busca} quando:1d",
         f"{termo_busca}"
@@ -115,7 +121,6 @@ def exibir_noticias_do_ativo(termo_ativo, chave_unica):
 st.title("📰 Notícias por Ativo em Tempo Real")
 st.caption("Notícias atualizadas a cada 15 minutos para cada ação, FII, cripto ou indicador selecionado.")
 
-# Dicionários completos de pesquisa por categoria
 ACOES_B3 = {
     "ITUB4": "Itaú ITUB4",
     "PETR4": "Petrobras PETR4",
