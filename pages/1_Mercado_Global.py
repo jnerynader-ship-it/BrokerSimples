@@ -1,101 +1,80 @@
 import streamlit as st
 import yfinance as yf
 
-st.title("🌍 Mercado Global em Tempo Real")
+st.title("🌍 Mercado Global")
+
+# Lista dos principais índices
+indices_globais = {
+    "^GSPC": "S&P 500",
+    "^IXIC": "Nasdaq",
+    "^DJI": "Dow Jones",
+    "^FTSE": "FTSE 100",
+    "^N225": "Nikkei 225",
+}
 
 
-# Cache de 1 hora (3600 segundos) para não sobrecarregar a API
+# Cache de 1 hora para buscar cotações atuais
 @st.cache_data(ttl=3600)
-def carregar_dados_mercado_global(tickers):
+def carregar_resumo_mercado(tickers):
   dados = {}
   for ticker in tickers:
     try:
       ativo = yf.Ticker(ticker)
-      # Obtém as informações principais do ativo
-      dados[ticker] = ativo.history(period="1d")
+      hist = ativo.history(period="2d")
+      if len(hist) >= 2:
+        preco_atual = hist["Close"].iloc[-1]
+        preco_anterior = hist["Close"].iloc[-2]
+        variacao = ((preco_atual - preco_anterior) / preco_anterior) * 100
+        dados[ticker] = {"preco": preco_atual, "var": variacao}
+      elif not hist.empty:
+        preco_atual = hist["Close"].iloc[-1]
+        dados[ticker] = {"preco": preco_atual, "var": 0.0}
     except Exception:
-      dados[ticker] = None
+      pass
   return dados
 
 
-# Cache de 1 hora para as notícias internacionais
+# Cache de 1 hora para os dados do gráfico
 @st.cache_data(ttl=3600)
-def carregar_noticias_globais(ticker_simbolo):
+def carregar_historico_grafico(ticker_simbolo, periodo, intervalo):
   try:
-    t = yf.Ticker(ticker_simbolo)
-    return t.news if t.news else []
+    ativo = yf.Ticker(ticker_simbolo)
+    df = ativo.history(period=periodo, interval=intervalo)
+    return df
   except Exception:
-    return []
+    return None
 
-
-# Exemplo de lista de índices e ativos globais
-indices_globais = [
-    "^GSPC",  # S&P 500
-    "^IXIC",  # Nasdaq
-    "^DJI",  # Dow Jones
-    "^FTSE",  # FTSE 100 (Londres)
-    "^N225",  # Nikkei 225 (Japão)
-]
 
 st.subheader("📊 Principais Índices do Mundo")
 
-# Carrega os dados com cache de 1 hora
-dados_indices = carregar_dados_mercado_global(indices_globais)
+# Exibição dos cards de topo (métricas)
+resumo = carregar_resumo_mercado(list(indices_globais.keys()))
 
 col1, col2, col3 = st.columns(3)
 colunas = [col1, col2, col3]
 
-for idx, ticker in enumerate(indices_globais):
+for idx, (ticker, nome) in enumerate(indices_globais.items()):
   col = colunas[idx % 3]
-  df = dados_indices.get(ticker)
-
-  if df is not None and not df.empty:
-    preco_atual = df["Close"].iloc[-1]
-    preco_abertura = df["Open"].iloc[-1]
-    variacao = ((preco_atual - preco_abertura) / preco_abertura) * 100
-
+  info = resumo.get(ticker)
+  if info:
     col.metric(
-        label=ticker,
-        value=f"{preco_atual:,.2f}",
-        delta=f"{variacao:+.2f}%",
+        label=f"{ticker} ({nome})",
+        value=f"{info['preco']:,.2f}",
+        delta=f"{info['var']:+.2f}%",
     )
 
 st.divider()
-st.subheader("📰 Notícias Internacionais")
 
-ativo_noticia = st.selectbox(
-    "Selecione o Mercado/Ativo para ver notícias:",
-    ["^GSPC", "^IXIC", "AAPL", "MSFT", "NVDA", "TSLA"],
-)
+# Seção do Gráfico Interativo no lugar das notícias
+st.subheader("📈 Gráfico de Desempenho em Tempo Real")
 
-noticias = carregar_noticias_globais(ativo_noticia)
+col_sel1, col_sel2 = st.columns([2, 1])
 
-if noticias:
-  for item in noticias[:5]:
-    content = item.get("content", {})
-    titulo = (
-        item.get("title")
-        or content.get("title")
-        or item.get("headline")
-        or "Sem título"
-    )
+with col_sel1:
+  ativo_selecionado = st.selectbox(
+      "Selecione o Índice/Ativo para visualizar:",
+      options=list(indices_globais.keys()),
+      format_func=lambda x: f"{x} - {indices_globais[x]}",
+  )
 
-    link_obj = (
-        item.get("link")
-        or content.get("canonicalUrl")
-        or content.get("clickThroughUrl")
-    )
-    link = link_obj.get("url", "#") if isinstance(link_obj, dict) else (link_obj or "#")
-
-    publisher = item.get("publisher") or content.get("provider")
-    fonte = (
-        publisher.get("displayName", "Fonte desconhecida")
-        if isinstance(publisher, dict)
-        else (publisher or "Fonte desconhecida")
-    )
-
-    st.subheader(f"[{titulo}]({link})")
-    st.caption(f"Fonte: {fonte}")
-    st.divider()
-else:
-  st.info("Nenhuma notícia encontrada para este ativo no momento.")
+with col_sel
