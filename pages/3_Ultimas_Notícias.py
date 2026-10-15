@@ -1,13 +1,21 @@
+import time
 import streamlit as st
 import yfinance as yf
 
 st.title("📰 Notícias do Mercado em Tempo Real")
 
 
-# Função auxiliar para carregar e exibir as notícias de um ativo
-def exibir_noticias(ticker_simbolo):
+# Função com cache de 1 hora (3600 segundos) para atualizar as notícias periodicamente
+@st.cache_data(ttl=3600)
+def carregar_noticias_com_cache(ticker_simbolo):
   ticker = yf.Ticker(ticker_simbolo)
-  noticias = ticker.news
+  return ticker.news
+
+
+# Função auxiliar para exibir as notícias na tela
+def exibir_noticias(ticker_simbolo):
+  # Exibe um indicador visual de quando os dados foram buscados
+  noticias = carregar_noticias_com_cache(ticker_simbolo)
 
   if noticias:
     for item in noticias[:5]:  # Exibe as 5 notícias mais recentes
@@ -33,7 +41,7 @@ def exibir_noticias(ticker_simbolo):
     st.info("Nenhuma notícia recente encontrada para este ativo no momento.")
 
 
-# TODAS AS AÇÕES DO IBOVESPA (Sem o sufixo .SA na interface, adicionado no backend)
+# TODAS AS AÇÕES DO IBOVESPA
 acoes_b3 = sorted([
     "ABEV3",
     "ALOS3",
@@ -120,7 +128,7 @@ acoes_b3 = sorted([
     "YDUQ3",
 ])
 
-# TODOS OS FUNDOS IMOBILIÁRIOS DO IFIX (Sem o sufixo .SA na interface)
+# TODOS OS FUNDOS IMOBILIÁRIOS DO IFIX
 fiis = sorted([
     "ALZR11",
     "ARRI11",
@@ -237,14 +245,14 @@ internacional = [
     "NFLX",
 ]
 
-# Criação das abas no Streamlit
+# Abas do Streamlit
 tab_acoes, tab_fiis, tab_rf, tab_cripto, tab_inter = st.tabs([
     "📈 Ações B3",
     "🏢 Fundos Imobiliários",
     "💵 Renda Fixa / Macro",
     "🪙 Criptomoedas",
     "🌐 Internacional",
-])
+]
 
 with tab_acoes:
   ativo = st.selectbox("Selecione a Ação:", acoes_b3, key="acoes")
