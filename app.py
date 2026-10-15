@@ -1,10 +1,11 @@
+from datetime import datetime, timedelta
 import urllib.parse
 import feedparser
 from openai import OpenAI
 import streamlit as st
 import yfinance as yf
 
-# Configuração da página do Streamlit
+# Configuração inicial
 st.set_page_config(
     page_title="BrokerSimples | Assistente Financeiro Inteligente",
     page_icon="📈",
@@ -14,7 +15,7 @@ st.set_page_config(
 
 st.markdown("### 📈 BrokerSimples - Assistente Financeiro Inteligente")
 
-# Estilização em CSS
+# Estilização do app
 st.markdown(
     """
     <style>
@@ -105,9 +106,7 @@ if "historico" not in st.session_state:
 if "selected_prompt" not in st.session_state:
   st.session_state.selected_prompt = ""
 
-# ---------------------------------------------------------
-# BARRA LATERAL (HISTÓRICO E NAVEGAÇÃO)
-# ---------------------------------------------------------
+# --- BARRA LATERAL ---
 st.sidebar.title("💬 Histórico de Prompts")
 st.sidebar.markdown("---")
 
@@ -132,9 +131,7 @@ aba_lateral = st.sidebar.radio(
     ["Chat Principal", "Últimas Notícias", "Recomendações de Compra"],
 )
 
-# ---------------------------------------------------------
-# VERIFICAÇÃO DA CHAVE DE API (OPENAI)
-# ---------------------------------------------------------
+# --- VERIFICAÇÃO DA CHAVE DE API (OPENAI) ---
 try:
   api_key = st.secrets["OPENAI_API_KEY"]
 except Exception:
@@ -143,102 +140,125 @@ except Exception:
 if not api_key:
   st.warning(
       "⚠️ Insira a sua chave da OpenAI no ficheiro `secrets.toml` para ativar o"
-      " assistente e a análise de imagens."
+      " assistente."
   )
   client = None
 else:
   client = OpenAI(api_key=api_key)
 
 
-# ---------------------------------------------------------
-# FUNÇÃO DO RADAR DE NOTÍCIAS EM TEMPO REAL (CACHE DE 15 MIN)
-# ---------------------------------------------------------
-@st.cache_data(ttl=900)  # Renovação automática a cada 15 minutos
-def carregar_radar_economico_global():
-  # Termos estratégicos com busca estrita de últimas 24h (quando:1d)
-  topicos_tempo_real = [
-      "mercado financeiro ao vivo quando:1d",
-      "ibovespa hoje bolsa quando:1d",
-      "bancos centrais juros inflacao quando:1d",
-      "dolar economia global quando:1d",
+# --- FUNÇÃO DE BUSCA POR DATA / FILTRO RIGOROSO ---
+@st.cache_data(ttl=600)  # Atualiza a cada 10 minutos
+def buscar_noticias_por_filtro(filtro_tempo="when:1d"):
+  queries = [
+      f"mercado financeiro bolsa {filtro_tempo}",
+      f"economia inflacao juros {filtro_tempo}",
+      f"ibovespa ações empresas {filtro_tempo}",
+      f"fed banco central dolar {filtro_tempo}",
   ]
 
   noticias = []
   links_vistos = set()
 
-  for termo in topicos_tempo_real:
+  for q in queries:
     try:
-      termo_encoded = urllib.parse.quote(termo)
-      url = f"https://news.google.com/rss/search?q={termo_encoded}&hl=pt-BR&gl=BR&ceid=BR:pt-419"
+      q_encoded = urllib.parse.quote(q)
+      url = f"https://news.google.com/rss/search?q={q_encoded}&hl=pt-BR&gl=BR&ceid=BR:pt-419"
       feed = feedparser.parse(url)
 
-      for entry in feed.entries[:6]:
+      for entry in feed.entries[:10]:
         link = entry.get("link", "#")
         if link not in links_vistos:
           links_vistos.add(link)
           noticias.append({
               "titulo": entry.get("title", "Sem título"),
               "link": link,
-              "fonte": entry.get("source", {}).get("title", "Fonte de Notícias"),
-              "data": entry.get("published", ""),
+              "fonte": entry.get("source", {}).get("title", "Veículo de Notícias"),
+              "data": entry.get("published", "Data recente"),
           })
     except Exception:
       pass
 
-  return noticias[:16]
+  return noticias
 
 
-# ---------------------------------------------------------
-# CONTEÚDO PRINCIPAL DA APLICAÇÃO
-# ---------------------------------------------------------
+# --- CONTEÚDO PRINCIPAL ---
 if aba_lateral == "Últimas Notícias":
-  st.header("🔥 Radar de Notícias: O que está a Mover o Mercado Global & B3")
+  st.header("🔥 Radar de Notícias Organizado por Data")
   st.caption(
-      "⚡ Atualizado em tempo real com matérias de hoje (InfoMoney, Bloomberg"
-      " Línea, Valor Econômico, Reuters)."
+      "Acompanhe as notícias mais recentes separadas exatamente pelo dia da"
+      " publicação."
   )
   st.markdown("---")
 
-  noticias_ao_vivo = carregar_radar_economico_global()
+  # Datas dinâmicas para os nomes das abas
+  hoje_str = datetime.now().strftime("%d/%m/%Y")
+  ontem_str = (datetime.now() - timedelta(days=1)).strftime("%d/%m/%Y")
 
-  if noticias_ao_vivo:
-    col1, col2 = st.columns(2)
-    metade = len(noticias_ao_vivo) // 2
+  tab_hoje, tab_ontem, tab_recente = st.tabs([
+      f"📅 Hoje ({hoje_str}) - Tempo Real",
+      f"📅 Ontem ({ontem_str})",
+      "📜 Últimos 7 Dias",
+  ])
 
-    with col1:
-      st.subheader("🌐 Cenário Internacional & Bancos Centrais")
-      for idx, item in enumerate(noticias_ao_vivo[:metade], 1):
+  with tab_hoje:
+    st.subheader(f"⚡ Acontecimentos de Hoje ({hoje_str})")
+    noticias_hoje = buscar_noticias_por_filtro("when:12h")
+
+    if noticias_hoje:
+      col1, col2 = st.columns(2)
+      metade = len(noticias_hoje) // 2
+
+      with col1:
+        for idx, item in enumerate(noticias_hoje[:metade], 1):
+          st.markdown(f"**{idx}. [{item['titulo']}]({item['link']})**")
+          st.caption(f"Fonte: **{item['fonte']}** | 🕒 {item['data']}")
+          st.divider()
+
+      with col2:
+        for idx, item in enumerate(noticias_hoje[metade:], metade + 1):
+          st.markdown(f"**{idx}. [{item['titulo']}]({item['link']})**")
+          st.caption(f"Fonte: **{item['fonte']}** | 🕒 {item['data']}")
+          st.divider()
+    else:
+      st.info("Buscando notícias publicadas hoje...")
+
+  with tab_ontem:
+    st.subheader(f"📑 Principais Notícias de Ontem ({ontem_str})")
+    noticias_ontem = buscar_noticias_por_filtro("when:2d")
+
+    if noticias_ontem:
+      for idx, item in enumerate(noticias_ontem[:10], 1):
         st.markdown(f"**{idx}. [{item['titulo']}]({item['link']})**")
-        data_str = f" 🕒 *{item['data']}*" if item["data"] else ""
-        st.caption(f"Fonte: **{item['fonte']}**{data_str}")
+        st.caption(f"Fonte: **{item['fonte']}** | 🕒 {item['data']}")
         st.divider()
+    else:
+      st.info("Buscando registros do dia anterior...")
 
-    with col2:
-      st.subheader("📊 Macroeconomia & Geopolítica Global")
-      for idx, item in enumerate(noticias_ao_vivo[metade:], metade + 1):
+  with tab_recente:
+    st.subheader("📚 Resumo do Mercado na Semana (Últimos 7 Dias)")
+    noticias_semana = buscar_noticias_por_filtro("when:7d")
+
+    if noticias_semana:
+      for idx, item in enumerate(noticias_semana[:15], 1):
         st.markdown(f"**{idx}. [{item['titulo']}]({item['link']})**")
-        data_str = f" 🕒 *{item['data']}*" if item["data"] else ""
-        st.caption(f"Fonte: **{item['fonte']}**{data_str}")
+        st.caption(f"Fonte: **{item['fonte']}** | 🕒 {item['data']}")
         st.divider()
-  else:
-    st.info("A carregar as notícias mais recentes do mercado...")
+    else:
+      st.info("Buscando histórico da semana...")
 
 elif aba_lateral == "Recomendações de Compra":
   st.header("📈 Ações Recomendadas & Análise de Ativos")
   st.markdown(
-      "Confira abaixo as principais ações recomendadas para o cenário atual,"
-      " com tese de valorização, notícia motivadora, cotação aproximada e"
-      " histórico de proventos:"
+      "Confira abaixo as principais ações recomendadas para o cenário atual:"
   )
 
   st.markdown("""
     | Nome da Empresa / Ativo | Risco | Tese de Investimento & Motivo | Notícia do Estímulo (Fonte) | Preço Aprox. | Últimos Dividendos |
     | :--- | :--- | :--- | :--- | :--- | :--- |
-    | **Petrobras (PETR4)** | 🟡 Mod. | Produção recorde na camada pré-sal e forte geração de caixa com a cotação do Brent em alta. | Valor Econômico | R$ 56,00 | R$ 1,04 / ação |
-    | **B3 S.A. (B3SA3)** | 🟢 Baixo / Mod. | Crescimento expressivo no volume financeiro diário e ampliação de contas ativas. | InfoMoney | R$ 18,50 | R$ 0,14 / ação |
-    | **Itaú Unibanco (ITUB4)** | 🟢 Baixo | Margem financeira sólida e capacidade defensiva elevada em períodos de ajuste bancário. | InfoMoney | R$ 50,40 | R$ 0,31 / ação |
-    | **Movida (MOVI3)** | 🔴 Alto | Crescimento expressivo no lucro líquido consolidado, superando projeções. | ADVFN | R$ 12,40 | R$ 0,10 / ação |
-    | **NVIDIA (NVDA)** | 🟡 Mod. | Demanda aquecida por semicondutores e chips de inteligência artificial. | Wall Street Journal | US$ 132,00 | US$ 0,01 / ação |
+    | **Petrobras (PETR4)** | 🟡 Mod. | Produção recorde na camada pré-sal e forte geração de caixa. | Valor Econômico | R$ 56,00 | R$ 1,04 / ação |
+    | **B3 S.A. (B3SA3)** | 🟢 Baixo / Mod. | Crescimento no volume financeiro diário e contas ativas. | InfoMoney | R$ 18,50 | R$ 0,14 / ação |
+    | **Itaú Unibanco (ITUB4)** | 🟢 Baixo | Margem financeira sólida e capacidade defensiva elevada. | InfoMoney | R$ 50,40 | R$ 0,31 / ação |
     """)
 
   st.markdown("---")
@@ -252,28 +272,20 @@ elif aba_lateral == "Recomendações de Compra":
     st.success("### 🛡️ Ações Mais Seguras (Resilientes)")
     st.markdown("""
         * **Itaú Unibanco (ITUB4) e B3 (B3SA3)**
-        * **Porquê são seguras?** Operam como líderes consolidados com alta geração de caixa.
-        * **Cenário Atual:** Garantem proteção patrimonial e rendimento em dividendos recorrentes.
+        * Líderes consolidados com alta geração de caixa e dividendos recorrentes.
         """)
 
   with col_arr:
-    st.error("### ⚠️ Ações Mais Arriscadas (Alto Potencial de Valorização)")
+    st.error("### ⚠️ Ações Mais Arriscadas (Alto Potencial)")
     st.markdown("""
         * **Movida (MOVI3)**
-        * **Porquê são arriscadas?** Alta alavancagem operacional e sensibilidade a ciclos econômicos.
-        * **Cenário Atual:** Oferecem assimetria positiva expressiva para investidores arrojados.
+        * Alta alavancagem e forte sensibilidade aos ciclos de juros.
         """)
-
-  st.caption(
-      "⚠️ *Aviso: As informações apresentadas possuem caráter exclusivamente"
-      " educacional.*"
-  )
 
 else:
   st.title("🤖 BrokerSimples - Assistente Financeiro Inteligente")
   st.markdown(
-      "Faça perguntas sobre o mercado, envie gráficos/prints para análise"
-      " visual ou utilize a barra central."
+      "Faça perguntas sobre o mercado ou peça análises ao assistente."
   )
 
   for msg in st.session_state.historico:
@@ -291,9 +303,7 @@ else:
 
   st.markdown("---")
 
-  prompt_chat = st.chat_input(
-      "Digite sua dúvida, ordem ou análise (Ex: Como está a PETR4?)..."
-  )
+  prompt_chat = st.chat_input("Digite sua dúvida (Ex: Como está a PETR4?)...")
 
   if st.session_state.selected_prompt:
     prompt_chat = st.session_state.selected_prompt
@@ -321,8 +331,7 @@ else:
                         "role": "system",
                         "content": (
                             "Você é o BrokerSimples, um analista financeiro"
-                            " amigável e especialista em mercado de capitais,"
-                            " criptomoedas e análise técnica de gráficos."
+                            " amigável e especialista em mercado de capitais."
                         ),
                     },
                     {"role": "user", "content": prompt_chat},
@@ -340,8 +349,7 @@ st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; color: #94a3b8; font-size: 12px; padding: 10px;'>
-        <strong>Aviso Legal (Disclaimer):</strong> O BrokerSimples é uma ferramenta educacional e de análise baseada em Inteligência Artificial.
-        As informações apresentadas não constituem recomendação direta de compra ou venda de ativos financeiros.
+        <strong>Aviso Legal (Disclaimer):</strong> O BrokerSimples é uma ferramenta educacional. As informações não constituem recomendação direta de investimento.
     </div>
     """,
     unsafe_allow_html=True,
