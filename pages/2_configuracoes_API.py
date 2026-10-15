@@ -1,8 +1,18 @@
+import os
 import streamlit as st
 
-st.set_page_config(page_title="Configurações API | BrokerSimples", layout="wide")
+st.set_page_config(
+    page_title="Configurações API | BrokerSimples",
+    page_icon="⚙️",
+    layout="wide",
+)
 
-st.markdown("""
+# Logo nativa no topo esquerdo da barra lateral
+if os.path.exists("logo.png"):
+  st.logo("logo.png", icon_image="logo.png")
+
+st.markdown(
+    """
     <style>
     .stApp {
         background: linear-gradient(rgba(15, 23, 42, 0.88), rgba(15, 23, 42, 0.95)), 
@@ -25,53 +35,67 @@ st.markdown("""
         color: #f8fafc !important;
     }
     </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
-# BARRA LATERAL COM LOGO
-st.sidebar.image("logo.png", width=90)
+# BARRA LATERAL
 st.sidebar.title("💬 Histórico de Prompts")
 st.sidebar.markdown("---")
 
 if "historico" in st.session_state and st.session_state.historico:
-    st.sidebar.markdown("**Conversas Anteriores:**")
-    for i, msg in enumerate(st.session_state.historico):
-        if msg["role"] == "user":
-            resumo = msg["content"] if isinstance(msg["content"], str) else "[Imagem Enviada]"
-            st.sidebar.button(f"📌 {resumo[:22]}...", key=f"hist_cfg_{i}")
+  st.sidebar.markdown("**Conversas Anteriores:**")
+  for i, msg in enumerate(st.session_state.historico):
+    if msg["role"] == "user":
+      resumo = (
+          msg["content"] if isinstance(msg["content"], str) else "[Imagem Enviada]"
+      )
+      st.sidebar.button(f"📌 {resumo[:22]}...", key=f"hist_cfg_{i}")
 else:
-    st.sidebar.caption("Nenhum histórico recente.")
+  st.sidebar.caption("Nenhum histórico recente.")
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("📊 Mercado & Ativos")
-st.sidebar.markdown("Navegação Rápida:")
 aba_lateral = st.sidebar.radio(
-    "Ir para:",
+    "Navegação Rápida:",
     ["Chat Principal", "Últimas Notícias", "Recomendações de Compra"],
-    key="nav_sidebar_cfg"
+    key="nav_sidebar_cfg",
 )
 
 if aba_lateral != "Chat Principal":
-    st.info(f"💡 Você selecionou **{aba_lateral}**. Para visualizar esta secção inteira, aceda à página principal (**app**).")
+  st.info(
+      f"💡 Você selecionou **{aba_lateral}**. Para visualizar esta secção"
+      " inteira, aceda à página principal (**app**)."
+  )
 
-# CONTEÚDO
+# CONTEÚDO PRINCIPAL
 st.title("⚙️ Configurações da Plataforma")
 st.caption("Gerencie credenciais de acesso às APIs e parâmetros do sistema.")
 
 st.markdown("---")
 
 with st.form("form_config_api"):
-    st.subheader("🔑 Credenciais de Acesso")
-    st.text_input("Chave da API OpenAI (sk-proj-...)", type="password", key="input_openai")
-    st.text_input("Chave de Conexão Corretora / MetaTrader API", type="password", key="input_broker")
-    
-    st.selectbox(
-        "Modo de Operação Padrão da IA",
-        ["Conservador", "Moderado", "Agressivo"],
-        key="select_modo_ia"
-    )
-    
-    if st.form_submit_button("Guardar Configurações"):
-        st.success("Configurações atualizadas com sucesso!")
+  st.subheader("🔑 Credenciais de Acesso")
+  st.text_input(
+      "Chave da API OpenAI (sk-proj-...)", type="password", key="input_openai"
+  )
+  st.text_input(
+      "Chave de Conexão Corretora / MetaTrader API",
+      type="password",
+      key="input_broker",
+  )
+
+  st.selectbox(
+      "Modo de Operação Padrão da IA",
+      ["Conservador", "Moderado", "Agressivo"],
+      key="select_modo_ia",
+  )
+
+  if st.form_submit_button("Guardar Configurações"):
+    st.success("Configurações atualizadas com sucesso!")
 
 st.markdown("---")
-st.info("ℹ️ Certifique-se de manter as suas chaves de API em segurança e nunca as partilhe publicamente.")
+st.info(
+    "ℹ️ Certifique-se de manter as suas chaves de API em segurança e nunca as"
+    " partilhe publicamente."
+)
