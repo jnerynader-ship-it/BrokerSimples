@@ -1,24 +1,101 @@
 import streamlit as st
-import pandas as pd
-import numpy as np
+import yfinance as yf
 
-st.set_page_config(page_title="Mercado Global - BrokerSimples", page_icon="📊", layout="wide")
+st.title("🌍 Mercado Global em Tempo Real")
 
-st.header("📊 Monitor de Ativos e Cotações")
-st.markdown("Acompanhe em tempo real os principais pares de moedas, índices e criptoativos.")
 
-# Tabela simulada de ativos financeiros
-dados_mercado = pd.DataFrame({
-    "Ativo": ["EURUSD", "GBPUSD", "USDJPY", "PETR4", "VALE3", "BTCUSD"],
-    "Tipo": ["Forex", "Forex", "Forex", "Ação BR", "Ação BR", "Criptomoeda"],
-    "Último": [1.1123, 1.3170, 158.86, 36.50, 62.10, 64200.00],
-    "Variação (%)": [+0.15, -0.42, +0.81, +1.25, -0.73, +3.40]
-})
-st.dataframe(dados_mercado, width='stretch')
+# Cache de 1 hora (3600 segundos) para não sobrecarregar a API
+@st.cache_data(ttl=3600)
+def carregar_dados_mercado_global(tickers):
+  dados = {}
+  for ticker in tickers:
+    try:
+      ativo = yf.Ticker(ticker)
+      # Obtém as informações principais do ativo
+      dados[ticker] = ativo.history(period="1d")
+    except Exception:
+      dados[ticker] = None
+  return dados
 
-st.subheader("Gráfico de Tendência (Simulação)")
-chart_data = pd.DataFrame(
-    np.random.randn(20, 3),
-    columns=["EURUSD", "PETR4", "VALE3"]
+
+# Cache de 1 hora para as notícias internacionais
+@st.cache_data(ttl=3600)
+def carregar_noticias_globais(ticker_simbolo):
+  try:
+    t = yf.Ticker(ticker_simbolo)
+    return t.news if t.news else []
+  except Exception:
+    return []
+
+
+# Exemplo de lista de índices e ativos globais
+indices_globais = [
+    "^GSPC",  # S&P 500
+    "^IXIC",  # Nasdaq
+    "^DJI",  # Dow Jones
+    "^FTSE",  # FTSE 100 (Londres)
+    "^N225",  # Nikkei 225 (Japão)
+]
+
+st.subheader("📊 Principais Índices do Mundo")
+
+# Carrega os dados com cache de 1 hora
+dados_indices = carregar_dados_mercado_global(indices_globais)
+
+col1, col2, col3 = st.columns(3)
+colunas = [col1, col2, col3]
+
+for idx, ticker in enumerate(indices_globais):
+  col = colunas[idx % 3]
+  df = dados_indices.get(ticker)
+
+  if df is not None and not df.empty:
+    preco_atual = df["Close"].iloc[-1]
+    preco_abertura = df["Open"].iloc[-1]
+    variacao = ((preco_atual - preco_abertura) / preco_abertura) * 100
+
+    col.metric(
+        label=ticker,
+        value=f"{preco_atual:,.2f}",
+        delta=f"{variacao:+.2f}%",
+    )
+
+st.divider()
+st.subheader("📰 Notícias Internacionais")
+
+ativo_noticia = st.selectbox(
+    "Selecione o Mercado/Ativo para ver notícias:",
+    ["^GSPC", "^IXIC", "AAPL", "MSFT", "NVDA", "TSLA"],
 )
-st.line_chart(chart_data)
+
+noticias = carregar_noticias_globais(ativo_noticia)
+
+if noticias:
+  for item in noticias[:5]:
+    content = item.get("content", {})
+    titulo = (
+        item.get("title")
+        or content.get("title")
+        or item.get("headline")
+        or "Sem título"
+    )
+
+    link_obj = (
+        item.get("link")
+        or content.get("canonicalUrl")
+        or content.get("clickThroughUrl")
+    )
+    link = link_obj.get("url", "#") if isinstance(link_obj, dict) else (link_obj or "#")
+
+    publisher = item.get("publisher") or content.get("provider")
+    fonte = (
+        publisher.get("displayName", "Fonte desconhecida")
+        if isinstance(publisher, dict)
+        else (publisher or "Fonte desconhecida")
+    )
+
+    st.subheader(f"[{titulo}]({link})")
+    st.caption(f"Fonte: {fonte}")
+    st.divider()
+else:
+  st.info("Nenhuma notícia encontrada para este ativo no momento.")
