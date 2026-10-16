@@ -1,8 +1,6 @@
 from datetime import datetime, timedelta
 import os
 import urllib.parse
-import urllib.request
-import feedparser
 from openai import OpenAI
 import streamlit as st
 import yfinance as yf
@@ -160,396 +158,103 @@ else:
   client = OpenAI(api_key=api_key)
 
 
-# --- FUNÇÃO DE BUSCA DE NOTÍCIAS REAL ---
+# --- FUNÇÃO DE CONSULTA REAL VIA YFINANCE ---
 @st.cache_data(ttl=300)
-def buscar_noticias_reais(termo_busca):
-  noticias = []
+def obter_dados_e_noticias_yfinance(ticker_code):
+  # Formatação automática para ativos brasileiros se não contiver ponto
+  symbol = ticker_code.strip().upper()
+  if not symbol.endswith(".SA") and not "-" in symbol and len(symbol) <= 6:
+    symbol_sa = f"{symbol}.SA"
+  else:
+    symbol_sa = symbol
+
+  resultado = {"info": {}, "news": [], "symbol_usado": symbol_sa}
+
   try:
-    q_encoded = urllib.parse.quote(termo_busca)
-    rss_url = f"https://news.google.com/rss/search?q={q_encoded}&hl=pt-BR&gl=BR&ceid=BR:pt-419"
+    ticker = yf.Ticker(symbol_sa)
+    resultado["info"] = ticker.info
 
-    req = urllib.request.Request(
-        rss_url,
-        headers={
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-                " (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
-            )
-        },
-    )
-    xml_data = urllib.request.urlopen(req, timeout=10).read()
-    feed = feedparser.parse(xml_data)
-
-    for entry in feed.entries[:3]:
-      noticias.append({
-          "titulo": entry.get("title", "Notícia do Mercado"),
-          "link": entry.get("link", "#"),
-          "fonte": entry.get("source", {}).get("title", "Imprensa Financeira"),
-          "data": entry.get("published", "Hoje"),
-      })
+    # Busca de notícias nativa do yfinance
+    raw_news = ticker.news
+    if raw_news:
+      for n in raw_news[:5]:
+        title = n.get("title") or n.get("content", {}).get("title", "Notícia")
+        link = n.get("link") or n.get("content", {}).get("clickThroughUrl", {}).get("url", "#")
+        publisher = n.get("publisher") or n.get("content", {}).get("provider", {}).get("displayName", "Mercado")
+        
+        resultado["news"].append({
+            "titulo": title,
+            "link": link,
+            "fonte": publisher
+        })
   except Exception:
     pass
-  return noticias
+
+  return resultado
 
 
 # --- CONTEÚDO PRINCIPAL ---
 if aba_lateral == "Últimas Notícias":
   st.header("🔥 Radar de Notícias Financeiras em Tempo Real")
-  st.caption(
-      "Acompanhe as últimas publicações do mercado organizadas por período."
-  )
+  st.caption("Acompanhe as últimas publicações do mercado global e nacional.")
   st.markdown("---")
 
-  hoje_str = datetime.now().strftime("%d/%m/%Y")
-  ontem_str = (datetime.now() - timedelta(days=1)).strftime("%d/%m/%Y")
-
-  tab_hoje, tab_ontem, tab_recente = st.tabs([
-      f"📅 Hoje ({hoje_str}) - Últimas Horas",
-      f"📅 Ontem ({ontem_str})",
-      "📜 Últimos 7 Dias",
-  ])
-
-  with tab_hoje:
-    st.subheader(f"⚡ Acontecimentos de Hoje ({hoje_str})")
-    noticias_hoje = buscar_noticias_reais("mercado financeiro bolsa quando:1d")
-    if noticias_hoje:
-      for idx, item in enumerate(noticias_hoje, 1):
-        st.markdown(f"**{idx}. [{item['titulo']}]({item['link']})**")
-        st.caption(f"Fonte: **{item['fonte']}** | 🕒 {item['data']}")
-        st.divider()
-    else:
-      st.info("A buscar notícias de hoje...")
-
-  with tab_ontem:
-    st.subheader(f"📑 Principais Notícias de Ontem ({ontem_str})")
-    noticias_ontem = buscar_noticias_reais("economia ibovespa quando:2d")
-    if noticias_ontem:
-      for idx, item in enumerate(noticias_ontem, 1):
-        st.markdown(f"**{idx}. [{item['titulo']}]({item['link']})**")
-        st.caption(f"Fonte: **{item['fonte']}** | 🕒 {item['data']}")
-        st.divider()
-
-  with tab_recente:
-    st.subheader("📚 Resumo do Mercado na Semana")
-    noticias_semana = buscar_noticias_reais("acoes mercado financeiro quando:7d")
-    if noticias_semana:
-      for idx, item in enumerate(noticias_semana, 1):
-        st.markdown(f"**{idx}. [{item['titulo']}]({item['link']})**")
-        st.caption(f"Fonte: **{item['fonte']}** | 🕒 {item['data']}")
-        st.divider()
+  noticias_ibov = obter_dados_e_noticias_yfinance("^BVSP")["news"]
+  if noticias_ibov:
+    for idx, item in enumerate(noticias_ibov, 1):
+      st.markdown(f"**{idx}. [{item['titulo']}]({item['link']})**")
+      st.caption(f"Fonte: **{item['fonte']}**")
+      st.divider()
+  else:
+    st.info("A carregar últimas notícias do mercado financeiro...")
 
 elif aba_lateral == "Recomendações de Compra":
-  st.header("📈 Universo Geral de Ativos & Busca em Tempo Real")
-  st.caption(
-      "Acesse a lista completa de ativos do mercado ou pesquise qualquer outro"
-      " ativo diretamente."
-  )
+  st.header("📈 Busca Universal de Ativos & Notícias em Tempo Real")
+  st.caption("Consulte QUALQUER ativo negociado na B3, EUA, FIIs, Cripto ou Índices globais.")
   st.markdown("---")
 
-  # BUSCA UNIVERSAL PARA QUALQUER ATIVO
-  st.subheader("🔍 Consultar Qualquer Ativo Existente")
-  ativo_pesquisado = st.text_input(
-      "Digite o ticker ou nome de QUALQUER ativo (Ex: SANB11, WEGE3, AAPL,"
-      " HGLG11, BTC):"
-  )
+  col_input, col_info = st.columns([2, 1])
+  with col_input:
+    codigo_digita = st.text_input(
+        "Digite o Ticker de QUALQUER ativo (Ex: PVBL11, PETR4, ITUB4, AAPL, BTC-USD):",
+        value="PVBL11"
+    )
+  with col_info:
+    st.caption("💡 Para ações do Brasil ou FIIs, o sistema adiciona o sufixo `.SA` automaticamente.")
 
-  if ativo_pesquisado:
-    st.markdown(f"### 🔎 Resultado para: **{ativo_pesquisado.upper()}**")
-    c1, c2 = st.columns([2, 1])
-    with c1:
+  if codigo_digita:
+    with st.spinner(f"A consultar dados e notícias em tempo real para {codigo_digita}..."):
+      dados_ativo = obter_dados_e_noticias_yfinance(codigo_digita)
+      info = dados_ativo["info"]
+      news = dados_ativo["news"]
+      ticker_usado = dados_ativo["symbol_usado"]
+
+    st.markdown(f"## 🔎 Resultado da Pesquisa: **{ticker_usado}**")
+    
+    col_resumo, col_noticias = st.columns([2, 1])
+    
+    with col_resumo:
+      nome_empresa = info.get("longName") or info.get("shortName") or ticker_usado
+      setor = info.get("sector") or info.get("industry") or "Ativo Financeiro / Mercado de Capitais"
+      descricao = info.get("longBusinessSummary") or "Ativo consultado via base global de dados financeiros."
+
+      st.markdown(f"### **{nome_empresa}**")
+      st.markdown(f"**🏷️ Setor/Classe:** {setor}")
+      st.markdown(f"**📖 Resumo do Ativo:** {descricao[:500]}...")
       st.markdown(
-          f"**📖 Resumo do Ativo:** Ativo pesquisado no mercado para avaliação"
-          f" de oportunidade e alocação de carteira."
+          "**🏛️ Contexto Político-Econômico:** Impactado diretamente pelas taxas de juros (Selic/Fed Rates), "
+          "indicadores de inflação, políticas fiscais e apetite por risco no mercado internacional."
       )
-      st.markdown(
-          f"**🏛️ Contexto Político-Econômico:** Impactado pelas flutuações"
-          f" recentes da taxa Selic, inflação (IPCA), decisões fiscais do"
-          f" governo e cenário macroeconômico global."
-      )
-    with c2:
-      st.markdown("**📰 Notícia Atualizada ao Vivo:**")
-      noticias_busca = buscar_noticias_reais(ativo_pesquisado)
-      if noticias_busca:
-        for n in noticias_busca:
+
+    with col_noticias:
+      st.markdown("### 📰 Notícias Atualizadas em Tempo Real")
+      if news:
+        for n in news:
           st.markdown(f"📌 [{n['titulo']}]({n['link']})")
-          st.caption(f"Fonte: **{n['fonte']}** | {n['data']}")
+          st.caption(f"Fonte: **{n['fonte']}**")
+          st.divider()
       else:
-        st.info("Buscando informações no Google News...")
-    st.markdown("---")
-
-  # BASE COMPLETA ORGANIZADA POR CLASSE DE ATIVOS
-  CATEGORIAS_ATIVOS = {
-      "📈 Ações B3 (Setor Financeiro)": [
-          {
-              "nome": "Itaú Unibanco (ITUB4)",
-              "risco": "Conservador",
-              "resumo": "Maior banco privado do país com forte lucratividade.",
-              "politica": "Protegido por altas taxas de juros e margem de crédito.",
-              "busca": "Itaú ITUB4",
-          },
-          {
-              "nome": "Banco do Brasil (BBAS3)",
-              "risco": "Conservador",
-              "resumo": "Líder no setor agrícola e alta distribuição de dividendos.",
-              "politica": "Incentivos estatais ao agronegócio impulsionam receitas.",
-              "busca": "Banco do Brasil BBAS3",
-          },
-          {
-              "nome": "Bradesco (BBDC4)",
-              "risco": "Moderado",
-              "resumo": "Segundo maior banco privado em reestruturação de carteira.",
-              "politica": "Sensível à inadimplência e à recuperação do crédito.",
-              "busca": "Bradesco BBDC4",
-          },
-          {
-              "nome": "Santander Brasil (SANB11)",
-              "risco": "Moderado",
-              "resumo": "Forte presença no varejo bancário e financiamento.",
-              "politica": "Sensível a decisões do Banco Central sobre a Selic.",
-              "busca": "Santander SANB11",
-          },
-          {
-              "nome": "BTG Pactual (BPAC11)",
-              "risco": "Moderado",
-              "resumo": "Maior banco de investimentos da América Latina.",
-              "politica": "Beneficia-se do volume de fusões e emissões na bolsa.",
-              "busca": "BTG Pactual BPAC11",
-          },
-      ],
-      "⚡ Ações B3 (Energia e Saneamento)": [
-          {
-              "nome": "Taesa (TAEE11)",
-              "risco": "Conservador",
-              "resumo": "Transmissora de energia com contratos de longo prazo.",
-              "politica": "Receita indexada à inflação, imune a crises passageiras.",
-              "busca": "Taesa TAEE11",
-          },
-          {
-              "nome": "Eletrobras (ELET3)",
-              "risco": "Conservador",
-              "resumo": "Líder em geração e transmissão privatizada.",
-              "politica": "Mudanças regulatórias no setor elétrico afetam cotações.",
-              "busca": "Eletrobras ELET3",
-          },
-          {
-              "nome": "CPFL Energia (CPFE3)",
-              "risco": "Conservador",
-              "resumo": "Distribuidora e geradora com altos dividendos.",
-              "politica": "Estabilidade de consumo em todas as fases da economia.",
-              "busca": "CPFL Energia CPFE3",
-          },
-          {
-              "nome": "Sabesp (SBSP3)",
-              "risco": "Moderado",
-              "resumo": "Companhia de saneamento do estado de SP.",
-              "politica": "Privatização e novos marcos regulatórios de saneamento.",
-              "busca": "Sabesp SBSP3",
-          },
-      ],
-      "🛢️ Ações B3 (Commodities e Indústria)": [
-          {
-              "nome": "Petrobras (PETR4)",
-              "risco": "Moderado",
-              "resumo": "Líder em exploração de petróleo no Pré-Sal.",
-              "politica": "Influenciada por políticas de preços e cotação do Brent.",
-              "busca": "Petrobras PETR4",
-          },
-          {
-              "nome": "Vale (VALE3)",
-              "risco": "Moderado",
-              "resumo": "Exportadora global de minério de ferro.",
-              "politica": "Depende da demanda da China e do Dólar.",
-              "busca": "Vale VALE3",
-          },
-          {
-              "nome": "Gerdau (GGBR4)",
-              "risco": "Moderado",
-              "resumo": "Siderúrgica com presença forte no Brasil e EUA.",
-              "politica": "Impactada por investimentos em infraestrutura global.",
-              "busca": "Gerdau GGBR4",
-          },
-          {
-              "nome": "WEG (WEGE3)",
-              "risco": "Moderado",
-              "resumo": "Fabricante global de motores e energia renovável.",
-              "politica": "Beneficiada pela transição energética e Dólar alto.",
-              "busca": "WEG WEGE3",
-          },
-          {
-              "nome": "Suzano (SUZB3)",
-              "risco": "Moderado",
-              "resumo": "Maior produtora mundial de celulose de eucalipto.",
-              "politica": "Faturamento em Dólar protege contra inflação interna.",
-              "busca": "Suzano SUZB3",
-          },
-      ],
-      "🛍️ Ações B3 (Varejo e Consumo)": [
-          {
-              "nome": "Ambev (ABEV3)",
-              "risco": "Conservador",
-              "resumo": "Líder no mercado de bebidas e cervejas na América Latina.",
-              "politica": "Consumo resiliente com forte geração de caixa.",
-              "busca": "Ambev ABEV3",
-          },
-          {
-              "nome": "Lojas Renner (LREN3)",
-              "risco": "Moderado",
-              "resumo": "Rede de vestuário e moda com forte presença física/digital.",
-              "politica": "Sensível ao poder de compra e crédito ao consumidor.",
-              "busca": "Lojas Renner LREN3",
-          },
-          {
-              "nome": "Magazine Luiza (MGLU3)",
-              "risco": "Arriscado",
-              "resumo": "Varejista de eletrodomésticos e e-commerce.",
-              "politica": "Reage fortemente a reduções na taxa Selic.",
-              "busca": "Magazine Luiza MGLU3",
-          },
-          {
-              "nome": "Casas Bahia (BHIA3)",
-              "risco": "Arriscado",
-              "resumo": "Tradicional rede de varejo em reestruturação.",
-              "politica": "Depende de renegociação de dívidas e juros baixos.",
-              "busca": "Casas Bahia BHIA3",
-          },
-      ],
-      "🏢 Fundos Imobiliários (FIIs - Todas as Classes)": [
-          {
-              "nome": "HGLG11 - CSHG Logística",
-              "risco": "Conservador",
-              "resumo": "Galpões logísticos alugados para grandes empresas.",
-              "politica": "Contratos atípicos de longo prazo protegem renda.",
-              "busca": "Fundo HGLG11",
-          },
-          {
-              "nome": "MXRF11 - Maxi Renda",
-              "risco": "Conservador",
-              "resumo": "Fundo de dívida imobiliária (CRIs).",
-              "politica": "Rendimentos corrigidos pela inflação e CDI.",
-              "busca": "MXRF11",
-          },
-          {
-              "nome": "KNRI11 - Kinea Renda",
-              "risco": "Conservador",
-              "resumo": "Fundo híbrido de escritórios e galpões.",
-              "politica": "Alta qualidade de imóveis nas capitais.",
-              "busca": "Fundo KNRI11",
-          },
-          {
-              "nome": "XPML11 - XP Malls",
-              "risco": "Moderado",
-              "resumo": "Participação nos principais shoppings do país.",
-              "politica": "Beneficia-se das vendas no varejo e fluxo de pessoas.",
-              "busca": "Fundo XPML11",
-          },
-          {
-              "nome": "BTLG11 - BTG Logística",
-              "risco": "Moderado",
-              "resumo": "Galpões estratégicos nas proximidades de SP.",
-              "politica": "Alta demanda por entregas rápidas do e-commerce.",
-              "busca": "Fundo BTLG11",
-          },
-      ],
-      "🌐 BDRs, Criptos & Mercado Internacional": [
-          {
-              "nome": "Apple (AAPL34)",
-              "risco": "Moderado",
-              "resumo": "Tecnologia global, iPhones e serviços.",
-              "politica": "Proteção patrimonial em moeda forte (Dólar).",
-              "busca": "Apple BDR AAPL34",
-          },
-          {
-              "nome": "Microsoft (MSFT34)",
-              "risco": "Moderado",
-              "resumo": "Líder em softwares, nuvem e Inteligência Artificial.",
-              "politica": "Pioneira na transformação digital corporativa.",
-              "busca": "Microsoft BDR MSFT34",
-          },
-          {
-              "nome": "Nvidia (NVDC34)",
-              "risco": "Arriscado",
-              "resumo": "Fabricante de processadores para IA.",
-              "politica": "Demanda gigante por tecnologia de ponta.",
-              "busca": "Nvidia BDR NVDC34",
-          },
-          {
-              "nome": "Bitcoin (BTC)",
-              "risco": "Arriscado",
-              "resumo": "Principal moeda digital descentralizada.",
-              "politica": "Reserva de valor imune à emissão de governos.",
-              "busca": "Bitcoin criptomoeda",
-          },
-          {
-              "nome": "Ethereum (ETH)",
-              "risco": "Arriscado",
-              "resumo": "Rede para contratos inteligentes e finanças digitais.",
-              "politica": "Desenvolvimento tecnológico e adoção global.",
-              "busca": "Ethereum criptomoeda",
-          },
-      ],
-  }
-
-  tab_perfil, tab_cat = st.tabs(
-      ["🎯 Filtrar por Perfil de Risco", "📂 Ver por Categoria de Ativo"]
-  )
-
-  with tab_perfil:
-    perfil_escolhido = st.radio(
-        "Selecione o seu perfil de investidor:",
-        ["🟢 Conservador", "🟡 Moderado", "🔴 Arriscado"],
-        horizontal=True,
-    )
-    mapa_risco = {
-        "🟢 Conservador": "Conservador",
-        "🟡 Moderado": "Moderado",
-        "🔴 Arriscado": "Arriscado",
-    }
-    risco_alvo = mapa_risco[perfil_escolhido]
-
-    for cat_nome, lista in CATEGORIAS_ATIVOS.items():
-      filtrados = [item for item in lista if item["risco"] == risco_alvo]
-      if filtrados:
-        st.subheader(f"{cat_nome}")
-        for item in filtrados:
-          with st.expander(f"{item['nome']} — Perfil {item['risco']}"):
-            c1, c2 = st.columns([2, 1])
-            with c1:
-              st.markdown(f"**📖 Resumo do Ativo:** {item['resumo']}")
-              st.markdown(
-                  f"**🏛️ Contexto Político-Econômico:** {item['politica']}"
-              )
-            with c2:
-              st.markdown("**📰 Notícia Atualizada ao Vivo:**")
-              noticias = buscar_noticias_reais(item["busca"])
-              if noticias:
-                for n in noticias:
-                  st.markdown(f"📌 [{n['titulo']}]({n['link']})")
-                  st.caption(f"Fonte: **{n['fonte']}** | {n['data']}")
-              else:
-                st.info("A consultar Google News...")
-        st.divider()
-
-  with tab_cat:
-    cat_selecionada = st.selectbox(
-        "Escolha a classe de ativo:", list(CATEGORIAS_ATIVOS.keys())
-    )
-    for item in CATEGORIAS_ATIVOS[cat_selecionada]:
-      with st.expander(f"{item['nome']} — Perfil {item['risco']}"):
-        c1, c2 = st.columns([2, 1])
-        with c1:
-          st.markdown(f"**📖 Resumo do Ativo:** {item['resumo']}")
-          st.markdown(
-              f"**🏛️ Contexto Político-Econômico:** {item['politica']}"
-          )
-        with c2:
-          st.markdown("**📰 Notícia Atualizada ao Vivo:**")
-          noticias = buscar_noticias_reais(item["busca"])
-          if noticias:
-            for n in noticias:
-              st.markdown(f"📌 [{n['titulo']}]({n['link']})")
-              st.caption(f"Fonte: **{n['fonte']}** | {n['data']}")
-          else:
-            st.info("A consultar Google News...")
+        st.warning(f"Sem notícias diretas encontradas no momento para {ticker_usado}. Tente outro ticker como PETR4, ITUB4 ou AAPL.")
 
 else:
   st.title("🤖 BrokerSimples - Assistente Financeiro Inteligente")
