@@ -153,12 +153,14 @@ except Exception:
 client = OpenAI(api_key=api_key) if api_key else None
 
 
-# --- FUNÇÃO DE BUSCA DE NOTÍCIAS REAL ---
-@st.cache_data(ttl=600)
+# --- FUNÇÃO DE BUSCA DE NOTÍCIAS MAIS RECENTES (ÚLTIMAS 24H ORDENADAS POR DATA / TTL 30 MIN) ---
+@st.cache_data(ttl=1800)
 def buscar_noticias_reais(termo_busca):
   noticias = []
   try:
-    q_encoded = urllib.parse.quote(termo_busca)
+    termo_formatado = f"{termo_busca} when:1d"
+    q_encoded = urllib.parse.quote(termo_formatado)
+
     rss_url = f"https://news.google.com/rss/search?q={q_encoded}&hl=pt-BR&gl=BR&ceid=BR:pt-419"
 
     req = urllib.request.Request(
@@ -166,14 +168,14 @@ def buscar_noticias_reais(termo_busca):
         headers={
             "User-Agent": (
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-                " (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+                " (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             )
         },
     )
     xml_data = urllib.request.urlopen(req, timeout=10).read()
     feed = feedparser.parse(xml_data)
 
-    for entry in feed.entries[:3]:
+    for entry in feed.entries[:10]:
       noticias.append({
           "titulo": entry.get("title", "Notícia de Mercado"),
           "link": entry.get("link", "#"),
@@ -188,19 +190,32 @@ def buscar_noticias_reais(termo_busca):
 # --- CONTEÚDO PRINCIPAL ---
 if aba_lateral == "Últimas Notícias":
   st.header("🔥 Radar de Notícias Financeiras em Tempo Real")
-  st.caption("Acompanhe as últimas publicações do mercado global e nacional.")
+  st.caption(
+      "Acompanhe as últimas notícias do mercado global e nacional publicadas"
+      " hoje (atualizadas a cada 30 minutos)."
+  )
   st.markdown("---")
 
-  noticias_mercado = buscar_noticias_reais(
-      "mercado financeiro bolsa ibovespa juros quando:1d"
-  )
+  col_top, col_btn = st.columns([3, 1])
+  with col_top:
+    st.info("🔄 O feed de notícias é renovado automaticamente a cada 30 minutos.")
+  with col_btn:
+    if st.button("🔄 Forçar Atualização"):
+      st.cache_data.clear()
+      st.rerun()
+
+  noticias_mercado = buscar_noticias_reais("mercado financeiro B3 bolsa economia")
+
   if noticias_mercado:
     for idx, item in enumerate(noticias_mercado, 1):
-      st.markdown(f"**{idx}. [{item['titulo']}]({item['link']})**")
+      st.markdown(f"### {idx}. [{item['titulo']}]({item['link']})")
       st.caption(f"Fonte: **{item['fonte']}** | 🕒 {item['data']}")
       st.divider()
   else:
-    st.info("A carregar últimas notícias do mercado financeiro...")
+    st.warning(
+        "Nenhuma publicação recente encontrada neste momento. Clique em 'Forçar"
+        " Atualização' acima."
+    )
 
 elif aba_lateral == "Recomendações Estratégicas":
   st.header(
@@ -213,7 +228,17 @@ elif aba_lateral == "Recomendações Estratégicas":
   )
   st.markdown("---")
 
-  # BANCO DE DADOS ESTRATÉGICO DE RECOMENDAÇÕES (NACIONAL E INTERNACIONAL)
+  col_top_rec, col_btn_rec = st.columns([3, 1])
+  with col_top_rec:
+    st.info(
+        "💡 Notícias e análises vinculadas aos ativos atualizadas"
+        " automaticamente de 30 em 30 minutos."
+    )
+  with col_btn_rec:
+    if st.button("🔄 Atualizar Análises"):
+      st.cache_data.clear()
+      st.rerun()
+
   MATRIZ_RECOMENDACOES = {
       "Nacionais (Brasil - B3 / Renda Fixa)": [
           {
@@ -373,8 +398,8 @@ elif aba_lateral == "Recomendações Estratégicas":
           },
           {
               "ativo": "Nvidia (NVDC34 / NVDA)",
-              "risco": "Arriscado",
               "categoria": "BDR Internacional — Semiconductores / IA",
+              "risco": "Arriscado",
               "tese": (
                   "Monopólio prático no fornecimento de processadores (GPUs)"
                   " para treinamento de redes neurais."
@@ -460,7 +485,7 @@ elif aba_lateral == "Recomendações Estratégicas":
           st.markdown("**📰 Notícias do Ativo em Tempo Real:**")
           news = buscar_noticias_reais(item["busca_news"])
           if news:
-            for n in news:
+            for n in news[:3]:
               st.markdown(f"📌 [{n['titulo']}]({n['link']})")
               st.caption(f"Fonte: **{n['fonte']}** | {n['data']}")
           else:
