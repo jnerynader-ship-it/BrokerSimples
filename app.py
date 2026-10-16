@@ -18,7 +18,7 @@ st.set_page_config(
 if os.path.exists("logo.png"):
   st.logo("logo.png", icon_image="logo.png")
 
-# Estilização visual padrão
+# Estilização visual
 st.markdown(
     """
     <style>
@@ -67,7 +67,6 @@ st.markdown(
         background-color: rgba(15, 23, 42, 0.9) !important;
     }
 
-    /* Ajuste do tamanho da logo */
     [data-testid="stLogo"] {
         max-height: 80px !important;
         height: auto !important;
@@ -160,24 +159,36 @@ else:
   client = OpenAI(api_key=api_key)
 
 
-# --- FUNÇÃO DE BUSCA POR DATA / FILTRO RIGOROSO ---
+# --- FUNÇÕES DE BUSCA CACHEADA ---
+@st.cache_data(ttl=900)
+def buscar_noticias_especificas(termo):
+  q_encoded = urllib.parse.quote(f"{termo} mercado financeiro quando:2d")
+  url = f"https://news.google.com/rss/search?q={q_encoded}&hl=pt-BR&gl=BR&ceid=BR:pt-419"
+  feed = feedparser.parse(url)
+  noticias = []
+  for entry in feed.entries[:3]:
+    noticias.append({
+        "titulo": entry.get("title", "Notícia Recente"),
+        "link": entry.get("link", "#"),
+        "fonte": entry.get("source", {}).get("title", "Imprensa"),
+    })
+  return noticias
+
+
 @st.cache_data(ttl=600)
 def buscar_noticias_por_filtro(filtro_tempo="when:1d"):
   queries = [
       f"mercado financeiro bolsa {filtro_tempo}",
       f"economia inflacao juros {filtro_tempo}",
       f"ibovespa ações empresas {filtro_tempo}",
-      f"fed banco central dolar {filtro_tempo}",
   ]
   noticias = []
   links_vistos = set()
-
   for q in queries:
     try:
       q_encoded = urllib.parse.quote(q)
       url = f"https://news.google.com/rss/search?q={q_encoded}&hl=pt-BR&gl=BR&ceid=BR:pt-419"
       feed = feedparser.parse(url)
-
       for entry in feed.entries[:10]:
         link = entry.get("link", "#")
         if link not in links_vistos:
@@ -185,7 +196,7 @@ def buscar_noticias_por_filtro(filtro_tempo="when:1d"):
           noticias.append({
               "titulo": entry.get("title", "Sem título"),
               "link": link,
-              "fonte": entry.get("source", {}).get("title", "Veículo de Notícias"),
+              "fonte": entry.get("source", {}).get("title", "Veículo"),
               "data": entry.get("published", "Data recente"),
           })
     except Exception:
@@ -197,8 +208,7 @@ def buscar_noticias_por_filtro(filtro_tempo="when:1d"):
 if aba_lateral == "Últimas Notícias":
   st.header("🔥 Radar de Notícias Organizado por Data")
   st.caption(
-      "Acompanhe as notícias mais recentes separadas exatamente pelo dia da"
-      " publicação."
+      "Acompanhe as notícias mais recentes separadas pelo dia da publicação."
   )
   st.markdown("---")
 
@@ -238,8 +248,6 @@ if aba_lateral == "Últimas Notícias":
         st.markdown(f"**{idx}. [{item['titulo']}]({item['link']})**")
         st.caption(f"Fonte: **{item['fonte']}** | 🕒 {item['data']}")
         st.divider()
-    else:
-      st.info("Buscando registos do dia anterior...")
 
   with tab_recente:
     st.subheader("📚 Resumo do Mercado na Semana (Últimos 7 Dias)")
@@ -249,223 +257,214 @@ if aba_lateral == "Últimas Notícias":
         st.markdown(f"**{idx}. [{item['titulo']}]({item['link']})**")
         st.caption(f"Fonte: **{item['fonte']}** | 🕒 {item['data']}")
         st.divider()
-    else:
-      st.info("Buscando histórico da semana...")
 
 elif aba_lateral == "Recomendações de Compra":
-  st.header("📈 Recomendações Estratégicas de Ativos & Cenário Global")
+  st.header("📈 Guia Descomplicado de Ativos & Cenário Político-Econômico")
   st.caption(
-      "🔄 Sistema de recomendação inteligente atualizado automaticamente a"
-      " cada 30 minutos com base no mercado nacional e internacional."
+      "Entenda o mercado sem complicações: teses explicadas para leigos e"
+      " validadas por notícias em tempo real."
   )
   st.markdown("---")
 
-  col_info, col_btn = st.columns([3, 1])
-  with col_info:
+  # Dicionário dinâmico expandido de ativos
+  BANCO_ATIVOS = {
+      "conservador": [
+          {
+              "nome": "Itaú Unibanco (ITUB4)",
+              "o_que_e": (
+                  "O maior banco privado do Brasil. Ganha dinheiro emprestando"
+                  " para pessoas e empresas com grande segurança."
+              ),
+              "cenario_politico_econo": (
+                  "Em períodos de juros altos ou incerteza política, os grandes"
+                  " bancos continuam lucrando com taxas de empréstimo e têm"
+                  " proteção sólida contra crises."
+              ),
+              "termo_busca": "Itaú ITUB4",
+          },
+          {
+              "nome": "Banco do Brasil (BBAS3)",
+              "o_que_e": (
+                  "Banco estatal com forte atuação no agronegócio"
+                  " brasileiro."
+              ),
+              "cenario_politico_econo": (
+                  "O agronegócio é o motor de exportação do país. Decisões do"
+                  " governo sobre o Plano Safra e subsídios influenciam"
+                  " diretamente a sua receita."
+              ),
+              "termo_busca": "Banco do Brasil BBAS3",
+          },
+          {
+              "nome": "HGLG11 - CSHG Logística (FII)",
+              "o_que_e": (
+                  "Fundo Imobiliário dono de galpões logísticos alugados para"
+                  " grandes empresas de e-commerce."
+              ),
+              "cenario_politico_econo": (
+                  "Mesmo com oscilações econômicas, o consumo de produtos de"
+                  " primeira necessidade e entregas rápidas mantém esses"
+                  " galpões sempre ocupados."
+              ),
+              "termo_busca": "Fundo HGLG11",
+          },
+          {
+              "nome": "MXRF11 - Maxi Renda (FII)",
+              "o_que_e": (
+                  "Fundo Imobiliário de 'Papel', que empresta dinheiro para o"
+                  " setor imobiliário e recebe juros todo mês."
+              ),
+              "cenario_politico_econo": (
+                  "Protege o investidor contra a inflação, pois seus títulos"
+                  " corrigem os pagamentos mensais de acordo com o aumento do"
+                  " custo de vida."
+              ),
+              "termo_busca": "MXRF11",
+          },
+          {
+              "nome": "Eletrobras (ELET3)",
+              "o_que_e": (
+                  "Líder em geração e transmissão de energia elétrica no país."
+              ),
+              "cenario_politico_econo": (
+                  "Energia é um serviço essencial. Mudanças regulatórias no"
+                  " setor elétrico e privatizações afetam seu valor, mas sua"
+                  " receita é altamente estável."
+              ),
+              "termo_busca": "Eletrobras ELET3",
+          },
+      ],
+      "moderado": [
+          {
+              "nome": "Petrobras (PETR4)",
+              "o_que_e": (
+                  "Gigante estatal de exploração de petróleo e combustíveis."
+              ),
+              "cenario_politico_econo": (
+                  "Ativo muito influenciado por política interna (política de"
+                  " preços dos combustíveis) e por conflitos internacionais"
+                  " que alteram o preço do barril de petróleo."
+              ),
+              "termo_busca": "Petrobras PETR4",
+          },
+          {
+              "nome": "Vale (VALE3)",
+              "o_que_e": (
+                  "Uma das maiores mineradoras do mundo, exportadora de minério"
+                  " de ferro."
+              ),
+              "cenario_politico_econo": (
+                  "Depende diretamente do crescimento da economia da China e"
+                  " da demanda por construção civil e aço no exterior."
+              ),
+              "termo_busca": "Vale VALE3",
+          },
+          {
+              "nome": "B3 S.A. (B3SA3)",
+              "o_que_e": (
+                  "A empresa que é dona da própria Bolsa de Valores do Brasil."
+              ),
+              "cenario_politico_econo": (
+                  "Quando a taxa Selic cai ou há otimismo com reformas"
+                  " econômicas do governo, mais pessoas investem na bolsa,"
+                  " aumentando os lucros da B3."
+              ),
+              "termo_busca": "B3 B3SA3",
+          },
+          {
+              "nome": "WEG (WEGE3)",
+              "o_que_e": (
+                  "Fabricante global de motores elétricos e tecnologias para"
+                  " energia solar e eólica."
+              ),
+              "cenario_politico_econo": (
+                  "Beneficia-se de incentivos globais à transição energética e"
+                  " da alta do Dólar, pois exporta para dezenas de países."
+              ),
+              "termo_busca": "WEG WEGE3",
+          },
+      ],
+      "arriscado": [
+          {
+              "nome": "Magazine Luiza (MGLU3)",
+              "o_que_e": "Varejista gigante de eletrodomésticos e e-commerce.",
+              "cenario_politico_econo": (
+                  "Altamente afetada pela taxa de juros (Selic). Quando os"
+                  " juros estão altos, o crédito fica caro e as pessoas compram"
+                  " menos parcelado."
+              ),
+              "termo_busca": "Magazine Luiza MGLU3",
+          },
+          {
+              "nome": "Movida (MOVI3)",
+              "o_que_e": "Empresa de aluguel de carros e venda de seminovos.",
+              "cenario_politico_econo": (
+                  "Sensível à inflação de carros novos e aos juros altos, que"
+                  " encarecem a compra e renovação da sua frota de veículos."
+              ),
+              "termo_busca": "Movida MOVI3",
+          },
+          {
+              "nome": "CVC Brasil (CVCB3)",
+              "o_que_e": "A maior operadora de turismo e viagens do Brasil.",
+              "cenario_politico_econo": (
+                  "Depende do poder de compra das famílias e da cotação do"
+                  " Dólar. Quando o dólar sobe, viagens internacionais ficam"
+                  " mais caras."
+              ),
+              "termo_busca": "CVC Brasil CVCB3",
+          },
+      ],
+  }
+
+  tab_cons, tab_mod, tab_arris = st.tabs([
+      "🛡️ Perfil Conservador (Baixo Risco)",
+      "⚖️ Perfil Moderado (Médio Risco)",
+      "🚀 Perfil Arriscado (Alto Risco)",
+  ])
+
+  def renderizar_bloco_ativos(lista_ativos, rotulo_risco, cor_emoji):
+    for idx, item in enumerate(lista_ativos):
+      with st.expander(f"{cor_emoji} {item['nome']}"):
+        col_desc, col_news = st.columns([2, 1])
+
+        with col_desc:
+          st.markdown(f"**📖 O que é (para leigos):** {item['o_que_e']}")
+          st.markdown(
+              f"**🏛️ Impacto do Cenário Político-Econômico:**"
+              f" {item['cenario_politico_econo']}"
+          )
+
+        with col_news:
+          st.markdown("**📰 Notícias de Hoje que Comprovam o Cenário:**")
+          noticias = buscar_noticias_especificas(item["termo_busca"])
+          if noticias:
+            for n in noticias:
+              st.markdown(f"• [{n['titulo']}]({n['link']})")
+              st.caption(f"Fonte: {n['fonte']}")
+          else:
+            st.caption("Nenhuma notícia recente encontrada no momento.")
+
+  with tab_cons:
     st.info(
-        "💡 Os ativos abaixo são selecionados e revisados periodicamente"
-        " considerando juros, inflação e fluxo de capital estrangeiro."
+        "💡 **Perfil Conservador:** Ideal para quem quer proteger seu dinheiro"
+        " da inflação e ter renda mensal sem correr grandes riscos."
     )
-  with col_btn:
-    if st.button("🔄 Atualizar Recomendações"):
-      st.cache_data.clear()
-      st.rerun()
+    renderizar_bloco_ativos(BANCO_ATIVOS["conservador"], "Conservador", "🟢")
 
+  with tab_mod:
+    st.info(
+        "💡 **Perfil Moderado:** Para quem busca crescimento do patrimônio e"
+        " aceita pequenas oscilações de preço no curto prazo."
+    )
+    renderizar_bloco_ativos(BANCO_ATIVOS["moderado"], "Moderado", "🟡")
 
-  @st.cache_data(ttl=1800)
-  def obter_dados_recomendacoes():
-    return {
-        "conservador": [
-            {
-                "ativo": "Itaú Unibanco (ITUB4)",
-                "tipo": "Ação — Setor Financeiro",
-                "porque_comprar": (
-                    "Margem financeira sólida, excelente controle de"
-                    " inadimplência e projeções de lucro recorde com forte"
-                    " capacidade de distribuição de proventos."
-                ),
-                "porque_risco": (
-                    "Classificado como **Conservador** por ser o maior banco"
-                    " privado do país, disponando de elevado colchão de"
-                    " capital e forte resiliência contra volatilidades"
-                    " macroeconômicas."
-                ),
-            },
-            {
-                "ativo": "Banco do Brasil (BBAS3)",
-                "tipo": "Ação — Bancário / Estatal",
-                "porque_comprar": (
-                    "Negociado a múltiplos extremamente atrativos (baixo P/L)"
-                    " com forte exposição ao crédito agronegócio e corporativo,"
-                    " garantindo dividend yields elevados."
-                ),
-                "porque_risco": (
-                    "Nível **Conservador** devido à sua solidez histórica e"
-                    " suporte estatal implícito, o que mitiga crises de"
-                    " liquidez sistêmica."
-                ),
-            },
-            {
-                "ativo": "HGLG11 (CSHG Logística)",
-                "tipo": "Fundo Imobiliário (FII de Tijolo)",
-                "porque_comprar": (
-                    "Portfólio de galpões logísticos de alto padrão (AAA)"
-                    " localizados nos principais eixos rodoviários e centros"
-                    " de consumo."
-                ),
-                "porque_risco": (
-                    "Perfil **Conservador** sustentado por contratos de longo"
-                    " prazo (atípicos) com inquilinos corporativos AAA,"
-                    " assegurando rendimentos mensais previsíveis."
-                ),
-            },
-            {
-                "ativo": "MXRF11 (Maxi Renda)",
-                "tipo": "Fundo Imobiliário (FII de Papel)",
-                "porque_comprar": (
-                    "Extrema liquidez diária e carteira pulverizada focada em"
-                    " Certificados de Recebíveis Imobiliários (CRIs) com"
-                    " garantias robustas."
-                ),
-                "porque_risco": (
-                    "Considerado **Conservador** pela proteção parcial"
-                    " proporcionada pelos indexadores de inflação e taxas"
-                    " flutuantes da renda fixa imobiliária."
-                ),
-            },
-        ],
-        "moderado": [
-            {
-                "ativo": "Petrobras (PETR4)",
-                "tipo": "Ação — Petróleo, Gás e Biocombustíveis",
-                "porque_comprar": (
-                    "Extração competitiva no pré-sal com custos reduzidos,"
-                    " forte geração de fluxo de caixa livre e apelo contínuo"
-                    " via dividendos extraordinários."
-                ),
-                "porque_risco": (
-                    "Nível **Moderado** pois, embora os fundamentos operacionais"
-                    " sejam excelentes, o ativo sofre oscilações atreladas à"
-                    " volatilidade internacional do petróleo Brent e ao"
-                    " ambiente regulatório."
-                ),
-            },
-            {
-                "ativo": "B3 S.A. (B3SA3)",
-                "tipo": "Ação — Infraestrutura de Mercado",
-                "porque_comprar": (
-                    "Monopólio natural da câmara de compensação e negociação de"
-                    " ativos no Brasil; beneficia-se diretamente do volume"
-                    " financeiro e retorno do apetite estrangeiro."
-                ),
-                "porque_risco": (
-                    "Classificado como **Moderado** por ser sensível ao"
-                    " volume diário negociado na bolsa e às flutuações das"
-                    " taxas de juros de longo prazo."
-                ),
-            },
-            {
-                "ativo": "XPML11 (XP Malls)",
-                "tipo": "Fundo Imobiliário (FII de Shoppings)",
-                "porque_comprar": (
-                    "Participação em shopping centers dominantes em praças de"
-                    " alta renda, capturando o crescimento real das vendas e"
-                    " do consumo das famílias."
-                ),
-                "porque_risco": (
-                    "Perfil **Moderado** devido à sensibilidade inerente do"
-                    " setor de varejo físico e shoppings frente aos ciclos de"
-                    " consumo e oscilações de juros."
-                ),
-            },
-            {
-                "ativo": "Weg (WEGE3)",
-                "tipo": "Ação — Bens de Capital / Global",
-                "porque_comprar": (
-                    "Liderança global em eficiência energética, motores"
-                    " elétricos e forte histórico de expansão internacional"
-                    " com gestão impecável."
-                ),
-                "porque_risco": (
-                    "Nível **Moderado** porque, apesar da altíssima qualidade"
-                    " do negócio, negocia historicamente a múltiplos de"
-                    " preço esticados (valuation elevado)."
-                ),
-            },
-        ],
-        "arriscado": [
-            {
-                "ativo": "Magazine Luiza (MGLU3)",
-                "tipo": "Ação — Varejo Digital e E-commerce",
-                "porque_comprar": (
-                    "Elevado potencial de reversão de resultados e ganho de"
-                    " margem operacional caso o cenário inflacionário e de"
-                    " crédito apresente trégua."
-                ),
-                "porque_risco": (
-                    "Classificado como **Arriscado** devido à alta"
-                    " alavancagem financeira, sensibilidade extrema a juros"
-                    " elevados e forte concorrência no comércio eletrônico."
-                ),
-            },
-            {
-                "ativo": "Movida (MOVI3)",
-                "tipo": "Ação — Locação de Veículos & Seminovos",
-                "porque_comprar": (
-                    "Oportunidade de valorização por otimização da frota e"
-                    " reprecificação das margens no segmento de aluguel e"
-                    " revenda de seminovos."
-                ),
-                "porque_risco": (
-                    "Perfil **Arriscado** por conta da forte intensidade de"
-                    " capital e dependência de linhas de financiamento de"
-                    " curto e médio prazo sensíveis à taxa Selic."
-                ),
-            },
-        ],
-    }
-
-
-  dados = obter_dados_recomendacoes()
-
-  st.subheader(
-      "🛡️ Bloco 1: Ações & FIIs Conservadores (Foco em Defesa e Renda Sólida)"
-  )
-  st.markdown(
-      "Ativos recomendados para mitigar a volatilidade, oferecendo"
-      " previsibilidade de fluxo de caixa e proteção contra choques externos."
-  )
-  for item in dados["conservador"]:
-    with st.expander(f"🟢 {item['ativo']} ({item['tipo']})"):
-      st.markdown(f"**💡 Por que ser comprada:** {item['porque_comprar']}")
-      st.markdown(f"**⚖️ Análise do Risco:** {item['porque_risco']}")
-
-  st.markdown("---")
-  st.subheader(
-      "⚖️ Bloco 2: Ações & FIIs Moderados (Equilíbrio entre Valor e Crescimento)"
-  )
-  st.markdown(
-      "Empresas e fundos consolidados com forte exposição a ciclos"
-      " macroeconômicos e commodities, equilibrando risco e retorno."
-  )
-  for item in dados["moderado"]:
-    with st.expander(f"🟡 {item['ativo']} ({item['tipo']})"):
-      st.markdown(f"**💡 Por que ser comprada:** {item['porque_comprar']}")
-      st.markdown(f"**⚖️ Análise do Risco:** {item['porque_risco']}")
-
-  st.markdown("---")
-  st.subheader(
-      "🚀 Bloco 3: Ações Arriscadas (Alto Potencial de Valorização & Volatilidade)"
-  )
-  st.markdown(
-      "Ativos voltados a investidores com maior tolerância a oscilações"
-      " intensas, focados em recuperação operacional e alavancagem de"
-      " resultados."
-  )
-  for item in dados["arriscado"]:
-    with st.expander(f"🔴 {item['ativo']} ({item['tipo']})"):
-      st.markdown(f"**💡 Por que ser comprada:** {item['porque_comprar']}")
-      st.markdown(f"**⚖️ Análise do Risco:** {item['porque_risco']}")
+  with tab_arris:
+    st.info(
+        "💡 **Perfil Arriscado:** Para quem busca lucros expressivos a longo"
+        " prazo e entende que o valor das ações pode oscilar fortemente."
+    )
+    renderizar_bloco_ativos(BANCO_ATIVOS["arriscado"], "Arriscado", "🔴")
 
 else:
   st.title("🤖 BrokerSimples - Assistente Financeiro Inteligente")
