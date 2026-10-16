@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 import os
 import urllib.parse
+import urllib.request
 import feedparser
 from openai import OpenAI
 import streamlit as st
@@ -159,49 +160,35 @@ else:
   client = OpenAI(api_key=api_key)
 
 
-# --- FUNÇÃO DE BUSCA DE NOTÍCIAS MAIS ATUAIS (CACHE DE 15 MIN) ---
-@st.cache_data(ttl=900)
-def buscar_noticias_especificas(termo):
-  q_encoded = urllib.parse.quote(f"{termo} mercado financeiro quando:1d")
-  url = f"https://news.google.com/rss/search?q={q_encoded}&hl=pt-BR&gl=BR&ceid=BR:pt-419"
-  feed = feedparser.parse(url)
+# --- FUNÇÃO DE BUSCA DE NOTÍCIAS CORRIGIDA COM USER-AGENT ---
+@st.cache_data(ttl=300)
+def buscar_noticias_reais(termo_busca):
   noticias = []
-  for entry in feed.entries[:3]:
-    noticias.append({
-        "titulo": entry.get("title", "Notícia em tempo real"),
-        "link": entry.get("link", "#"),
-        "fonte": entry.get("source", {}).get("title", "Imprensa Financeira"),
-        "data": entry.get("published", "Hoje"),
-    })
-  return noticias
+  try:
+    q_encoded = urllib.parse.quote(termo_busca)
+    rss_url = f"https://news.google.com/rss/search?q={q_encoded}&hl=pt-BR&gl=BR&ceid=BR:pt-419"
 
+    req = urllib.request.Request(
+        rss_url,
+        headers={
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+                " (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+            )
+        },
+    )
+    xml_data = urllib.request.urlopen(req, timeout=10).read()
+    feed = feedparser.parse(xml_data)
 
-@st.cache_data(ttl=900)
-def buscar_noticias_por_filtro(filtro_tempo="when:1d"):
-  queries = [
-      f"ibovespa dolar eleições quando:1d",
-      f"economia inflacao selic quando:1d",
-      f"acoes empresas bolsa quando:1d",
-  ]
-  noticias = []
-  links_vistos = set()
-  for q in queries:
-    try:
-      q_encoded = urllib.parse.quote(q)
-      url = f"https://news.google.com/rss/search?q={q_encoded}&hl=pt-BR&gl=BR&ceid=BR:pt-419"
-      feed = feedparser.parse(url)
-      for entry in feed.entries[:8]:
-        link = entry.get("link", "#")
-        if link not in links_vistos:
-          links_vistos.add(link)
-          noticias.append({
-              "titulo": entry.get("title", "Sem título"),
-              "link": link,
-              "fonte": entry.get("source", {}).get("title", "Veículo"),
-              "data": entry.get("published", "Hoje"),
-          })
-    except Exception:
-      pass
+    for entry in feed.entries[:3]:
+      noticias.append({
+          "titulo": entry.get("title", "Notícia do Mercado"),
+          "link": entry.get("link", "#"),
+          "fonte": entry.get("source", {}).get("title", "Imprensa Financeira"),
+          "data": entry.get("published", "Hoje"),
+      })
+  except Exception:
+    pass
   return noticias
 
 
@@ -224,329 +211,283 @@ if aba_lateral == "Últimas Notícias":
 
   with tab_hoje:
     st.subheader(f"⚡ Acontecimentos de Hoje ({hoje_str})")
-    noticias_hoje = buscar_noticias_por_filtro("when:12h")
+    noticias_hoje = buscar_noticias_reais("mercado financeiro bolsa quando:1d")
     if noticias_hoje:
-      col1, col2 = st.columns(2)
-      metade = len(noticias_hoje) // 2
-      with col1:
-        for idx, item in enumerate(noticias_hoje[:metade], 1):
-          st.markdown(f"**{idx}. [{item['titulo']}]({item['link']})**")
-          st.caption(f"Fonte: **{item['fonte']}** | 🕒 {item['data']}")
-          st.divider()
-      with col2:
-        for idx, item in enumerate(noticias_hoje[metade:], metade + 1):
-          st.markdown(f"**{idx}. [{item['titulo']}]({item['link']})**")
-          st.caption(f"Fonte: **{item['fonte']}** | 🕒 {item['data']}")
-          st.divider()
+      for idx, item in enumerate(noticias_hoje, 1):
+        st.markdown(f"**{idx}. [{item['titulo']}]({item['link']})**")
+        st.caption(f"Fonte: **{item['fonte']}** | 🕒 {item['data']}")
+        st.divider()
     else:
       st.info("A buscar notícias de hoje...")
 
   with tab_ontem:
     st.subheader(f"📑 Principais Notícias de Ontem ({ontem_str})")
-    noticias_ontem = buscar_noticias_por_filtro("when:2d")
+    noticias_ontem = buscar_noticias_reais("economia ibovespa quando:2d")
     if noticias_ontem:
-      for idx, item in enumerate(noticias_ontem[:10], 1):
+      for idx, item in enumerate(noticias_ontem, 1):
         st.markdown(f"**{idx}. [{item['titulo']}]({item['link']})**")
         st.caption(f"Fonte: **{item['fonte']}** | 🕒 {item['data']}")
         st.divider()
 
   with tab_recente:
     st.subheader("📚 Resumo do Mercado na Semana")
-    noticias_semana = buscar_noticias_por_filtro("when:7d")
+    noticias_semana = buscar_noticias_reais("acoes mercado financeiro quando:7d")
     if noticias_semana:
-      for idx, item in enumerate(noticias_semana[:15], 1):
+      for idx, item in enumerate(noticias_semana, 1):
         st.markdown(f"**{idx}. [{item['titulo']}]({item['link']})**")
         st.caption(f"Fonte: **{item['fonte']}** | 🕒 {item['data']}")
         st.divider()
 
 elif aba_lateral == "Recomendações de Compra":
-  st.header("📈 Catálogo de Ativos Recomendados & Contexto Político")
+  st.header("📈 Universo Completo de Ativos & Análise Político-Econômica")
   st.caption(
-      "Guia simplificado para todos os perfis de investidor, com notícias"
-      " atualizadas a cada 15 minutos."
+      "Explore todas as classes de ativos existentes no mercado nacional e"
+      " internacional, explicadas para leigos e validadas por notícias em"
+      " tempo real."
   )
   st.markdown("---")
 
-  col_top1, col_top2 = st.columns([3, 1])
-  with col_top1:
-    st.info(
-        "💡 **Como funciona:** Escolha a aba do seu perfil de risco para ver"
-        " uma lista diversificada de ativos (Ações, FIIs, Renda Fixa e BDRs)."
-        " Clique em qualquer ativo para ver a notícia mais recente que valida"
-        " essa recomendação!"
-    )
-  with col_top2:
-    if st.button("🔄 Atualizar Notícias Agora"):
-      st.cache_data.clear()
-      st.rerun()
-
-  BANCO_COMPLETO_ATIVOS = {
-      "conservador": [
+  # BANCO UNIVERSAL DE ATIVOS POR CATEGORIA
+  CATEGORIAS_ATIVOS = {
+      "📈 Ações B3 (Empresas Brasileiras)": [
           {
               "nome": "Itaú Unibanco (ITUB4)",
-              "tipo": "Ação / Setor Bancário",
-              "para_leigos": (
-                  "É o maior banco privado do país. Ganha dinheiro cobrando"
-                  " tarifas e emprestando para milhões de pessoas e empresas"
-                  " com baixo risco de calote."
+              "risco": "Conservador",
+              "leigos": (
+                  "Maior banco privado do país. Lucra alto cobrando tarifas e"
+                  " emprestando com baixo risco."
               ),
-              "contexto_politico": (
-                  "Em momentos de disputa eleitoral ou inflação alta, o Itaú é"
-                  " um 'porto seguro', pois consegue repassar juros e manter"
-                  " lucros bilionários."
+              "politica": (
+                  "Em cenários de juros altos ou incerteza política, os bancos"
+                  " mantêm lucros bilionários repassando taxas."
               ),
               "busca": "Itaú ITUB4",
           },
           {
               "nome": "Banco do Brasil (BBAS3)",
-              "tipo": "Ação / Estatal e Agronegócio",
-              "para_leigos": (
-                  "O banco mais antigo do Brasil e líder absoluto em empréstimos"
-                  " para o agronegócio (fazendeiros e produtores)."
+              "risco": "Conservador",
+              "leigos": (
+                  "Banco estatal líder no crédito para o agronegócio"
+                  " brasileiro."
               ),
-              "contexto_politico": (
-                  "Mesmo em trocas de governo, o agronegócio é o setor que mais"
-                  " traz dólares para o Brasil. Paga dividendos gordos e está"
-                  " muito barato na bolsa."
+              "politica": (
+                  "Incentivos do governo ao agronegócio (Plano Safra)"
+                  " impulsionam seus resultados e dividendos."
               ),
               "busca": "Banco do Brasil BBAS3",
           },
           {
-              "nome": "Taesa (TAEE11)",
-              "tipo": "Ação / Energia Elétrica",
-              "para_leigos": (
-                  "Dona de milhares de quilômetros de torres de transmissão de"
-                  " energia. Ganha dinheiro apenas por deixar a tomada do país"
-                  " ligada."
-              ),
-              "contexto_politico": (
-                  "As tarifas de energia são corrigidas pela inflação por"
-                  " contratos de governo de 30 anos. Imune a crises políticas"
-                  " passageiras."
-              ),
-              "busca": "Taesa TAEE11",
-          },
-          {
-              "nome": "HGLG11 - CSHG Logística",
-              "tipo": "Fundo Imobiliário (FII de Tijolo)",
-              "para_leigos": (
-                  "Fundo que compra galpões gigantescos de entregas e os aluga"
-                  " para empresas como Mercado Livre e Magalu. O aluguel vira"
-                  " pinga-pinga diário na sua conta."
-              ),
-              "contexto_politico": (
-                  "O comércio online e a necessidade de estoques perto de"
-                  " grandes cidades protegem os galpões de variações na economia"
-                  " do governo."
-              ),
-              "busca": "Fundo HGLG11",
-          },
-          {
-              "nome": "MXRF11 - Maxi Renda",
-              "tipo": "Fundo Imobiliário (FII de Papel)",
-              "para_leigos": (
-                  "Em vez de tijolo, este fundo financia obras de construção e"
-                  " recebe juros mensalmente. Custa em torno de R$ 10,00 por"
-                  " cota."
-              ),
-              "contexto_politico": (
-                  "Como a taxa de juros (Selic) e a inflação continuam altas,"
-                  " este fundo paga retornos mensais isentos de Imposto de"
-                  " Renda."
-              ),
-              "busca": "MXRF11",
-          },
-          {
-              "nome": "Tesouro Selic / IPCA+",
-              "tipo": "Renda Fixa Pública (Governo)",
-              "para_leigos": (
-                  "Emprestar dinheiro diretamente para o Governo Federal. É o"
-                  " investimento mais seguro de todo o Brasil."
-              ),
-              "contexto_politico": (
-                  "Diante de volatilidade em pesquisas eleitorais, o Tesouro"
-                  " Direto garante rentabilidade travada acima da inflação sem"
-                  " risco de bolsa."
-              ),
-              "busca": "Tesouro Direto Selic IPCA",
-          },
-      ],
-      "moderado": [
-          {
               "nome": "Petrobras (PETR4)",
-              "tipo": "Ação / Petróleo e Energia",
-              "para_leigos": (
-                  "Maior empresa de combustível do Brasil. Extrai petróleo do"
-                  " fundo do mar (Pré-Sal) a um custo baixíssimo."
+              "risco": "Moderado",
+              "leigos": (
+                  "Líder na extração de petróleo no Pré-Sal com baixíssimo custo"
+                  " de produção."
               ),
-              "contexto_politico": (
-                  "Sofre grande impacto com discursos políticos sobre o preço da"
-                  " gasolina e dividendos. Se o petróleo subir no exterior,"
-                  " vira uma maquina de lucros."
+              "politica": (
+                  "Sensível a discursos sobre preços de combustíveis e conflitos"
+                  " no Oriente Médio que elevam o petróleo."
               ),
               "busca": "Petrobras PETR4",
           },
           {
               "nome": "Vale (VALE3)",
-              "tipo": "Ação / Mineração e Commodities",
-              "para_leigos": (
-                  "Uma das maiores produtoras de minério de ferro do planeta."
-                  " Vende montanhas de ferro para a China construir prédios."
+              "risco": "Moderado",
+              "leigos": (
+                  "Uma das maiores exportadoras mundiais de minério de ferro."
               ),
-              "contexto_politico": (
-                  "Muito ligada à economia chinesa e ao Dólar. Quando o dólar"
-                  " sobe no Brasil, a Vale fatura mais porque vende em moeda"
-                  " americana."
+              "politica": (
+                  "Depende diretamente do crescimento da China e da cotação do"
+                  " Dólar no mercado internacional."
               ),
               "busca": "Vale VALE3",
           },
           {
-              "nome": "WEG (WEGE3)",
-              "tipo": "Ação / Indústria e Tecnologia",
-              "para_leigos": (
-                  "Fabricante de motores elétricos e equipamentos para energia"
-                  " solar. Apelidada de 'Fábrica de Bilionários'."
-              ),
-              "contexto_politico": (
-                  "Empresa global com presença nos EUA e Europa. Protege contra"
-                  " crises brasileiras porque a maior parte dos seus clientes"
-                  " está fora do país."
-              ),
-              "busca": "WEG WEGE3",
-          },
-          {
-              "nome": "XPML11 - XP Malls",
-              "tipo": "Fundo Imobiliário (FII de Shoppings)",
-              "para_leigos": (
-                  "Virar 'dono' de pedaços de grandes shoppings no Brasil."
-                  " Ganha dinheiro com os aluguéis das lojas e com o estacionamento."
-              ),
-              "contexto_politico": (
-                  "A queda das taxas de juros no médio prazo reaquece as compras"
-                  " de fim de ano e aumenta a circulação de pessoas nos"
-                  " shoppings."
-              ),
-              "busca": "Fundo XPML11",
-          },
-          {
-              "nome": "Apple (AAPL34 - BDR)",
-              "tipo": "BDR Internacional / Tecnologia",
-              "para_leigos": (
-                  "Permite investir na dona do iPhone diretamente pela Bolsa do"
-                  " Brasil, pagando em Reais."
-              ),
-              "contexto_politico": (
-                  "Protege o patrimônio em caso de desvalorização do Real frente"
-                  " ao Dólar, além de acompanhar o avanço global da"
-                  " Inteligência Artificial."
-              ),
-              "busca": "Apple BDR AAPL34",
-          },
-      ],
-      "arriscado": [
-          {
               "nome": "Magazine Luiza (MGLU3)",
-              "tipo": "Ação / Varejo Digital",
-              "para_leigos": (
-                  "Gigante de venda de geladeiras, celulares e compras pelo"
-                  " aplicativo."
-              ),
-              "contexto_politico": (
-                  "Altamente dependente da Selic. Se os juros caírem ou o"
-                  " governo liberar crédito para as famílias, a ação pode"
-                  " disparar, mas oscila muito."
+              "risco": "Arriscado",
+              "leigos": "Gigante do varejo de eletrodomésticos e e-commerce.",
+              "politica": (
+                  "Altamente dependente da taxa Selic. Juros baixos e facilidade"
+                  " de crédito reaquecem suas vendas."
               ),
               "busca": "Magazine Luiza MGLU3",
           },
+      ],
+      "🏢 Fundos Imobiliários (FIIs - Tijolo e Papel)": [
           {
-              "nome": "Movida (MOVI3)",
-              "tipo": "Ação / Aluguel de Carros",
-              "para_leigos": (
-                  "Aluga frotas de carros para motoristas de app e empresas,"
-                  " além de vender os seminovos."
+              "nome": "HGLG11 - CSHG Logística",
+              "risco": "Conservador",
+              "leigos": (
+                  "Dono de galpões gigantes alugados para empresas de e-commerce"
+                  " como Mercado Livre."
               ),
-              "contexto_politico": (
-                  "Como compra muitos carros financiado, precisa de juros"
-                  " baixos. Se a economia crescer após as eleições, é uma das"
-                  " que mais sobem."
+              "politica": (
+                  "Imune a crises políticas por ter contratos de aluguel de"
+                  " longo prazo com garantias sólidas."
               ),
-              "busca": "Movida MOVI3",
+              "busca": "Fundo HGLG11",
           },
           {
-              "nome": "CVC Brasil (CVCB3)",
-              "tipo": "Ação / Turismo e Viagens",
-              "para_leigos": (
-                  "Agência de viagens que vende pacotes de turismo e passagens"
-                  " aéreas."
+              "nome": "MXRF11 - Maxi Renda",
+              "risco": "Conservador",
+              "leigos": (
+                  "Empresta dinheiro para obras do setor imobiliário e paga"
+                  " rendimentos todo mês."
               ),
-              "contexto_politico": (
-                  "Sensível ao Dólar e ao poder de compra das famílias. Se a"
-                  " inflação der trégua e as passagens caírem, a empresa tende"
-                  " a se recuperar."
+              "politica": (
+                  "Protege o patrimônio porque seus rendimentos corrigem"
+                  " automaticamente com a inflação (IPCA)."
               ),
-              "busca": "CVC Brasil CVCB3",
+              "busca": "MXRF11",
           },
           {
-              "nome": "Azul Linhas Aéreas (AZUL4)",
-              "tipo": "Ação / Aviação Comercial",
-              "para_leigos": (
-                  "Empresa de aviação responsável por voos regionais e"
-                  " internacionais."
+              "nome": "XPML11 - XP Malls",
+              "risco": "Moderado",
+              "leigos": (
+                  "Dono de participações nos maiores shopping centers das"
+                  " capitais."
               ),
-              "contexto_politico": (
-                  "Sofre muito com o preço do combustível de aviação (atrelado"
-                  " ao petróleo) e com a cotação do Dólar. Risco alto, mas"
-                  " grande potencial em reestruturações."
+              "politica": (
+                  "Beneficia-se da recuperação do consumo das famílias e da"
+                  " queda da inflação de alimentos/bens."
               ),
-              "busca": "Azul Linhas Aéreas AZUL4",
+              "busca": "Fundo XPML11",
           },
+      ],
+      "🌐 BDRs & Ações Internacionais (EUA e Global)": [
+          {
+              "nome": "Apple (AAPL34)",
+              "risco": "Moderado",
+              "leigos": (
+                  "Fabricante do iPhone e computadores Mac com ecossistema de"
+                  " serviços global."
+              ),
+              "politica": (
+                  "Proteção cambial: ao investir na Apple, você protege seu"
+                  " dinheiro contra a desvalorização do Real."
+              ),
+              "busca": "Apple BDR AAPL34",
+          },
+          {
+              "nome": "Nvidia (NVDC34)",
+              "risco": "Arriscado",
+              "leigos": (
+                  "Líder absoluta na fabricação de chips e placas para"
+                  " Inteligência Artificial."
+              ),
+              "politica": (
+                  "Submetida a disputas tecnológicas entre EUA e China. Alto"
+                  " potencial de valorização futura."
+              ),
+              "busca": "Nvidia BDR NVDC34",
+          },
+      ],
+      "🪙 Criptomoedas (Ativos Digitais)": [
+          {
+              "nome": "Bitcoin (BTC)",
+              "risco": "Arriscado",
+              "leigos": (
+                  "A primeira e mais valiosa moeda digital descentralizada do"
+                  " mundo."
+              ),
+              "politica": (
+                  "Usado mundialmente como reserva de valor alternativa ao"
+                  " dinheiro emitido por governos com inflação."
+              ),
+              "busca": "Bitcoin criptomoeda",
+          },
+          {
+              "nome": "Ethereum (ETH)",
+              "risco": "Arriscado",
+              "leigos": (
+                  "Plataforma digital onde são construídos contratos"
+                  " inteligentes e finanças descentralizadas."
+              ),
+              "politica": (
+                  "Impactado por regulamentações de órgãos financeiros dos EUA"
+                  " (SEC) e da União Europeia."
+              ),
+              "busca": "Ethereum criptomoeda",
+          },
+      ],
+      "💵 Renda Fixa & Títulos Públicos": [
+          {
+              "nome": "Tesouro Selic / IPCA+",
+              "risco": "Conservador",
+              "leigos": (
+                  "Emprestar dinheiro diretamente para o Governo Federal do"
+                  " Brasil."
+              ),
+              "politica": (
+                  "Opção mais segura do país. Garante rendimento acima da"
+                  " inflação independente de quem ganhe as eleições."
+              ),
+              "busca": "Tesouro Direto Selic IPCA",
+          }
       ],
   }
 
-  tab_c, tab_m, tab_a = st.tabs([
-      "🛡️ Bloco Conservador (Segurança & Renda)",
-      "⚖️ Bloco Moderado (Crescimento & Equilíbrio)",
-      "🚀 Bloco Arriscado (Potencial & Volatilidade)",
-  ])
+  tab_perfil, tab_cat = st.tabs(
+      ["🎯 Filtrar por Perfil de Risco", "📂 Ver por Categoria de Ativo"]
+  )
 
-  def exibir_lista_interativa(lista_ativos, emoji):
-    for item in lista_ativos:
-      with st.expander(f"{emoji} {item['nome']} — [{item['tipo']}]"):
+  with tab_perfil:
+    perfil_escolhido = st.radio(
+        "Selecione o seu perfil de investidor:",
+        ["🟢 Conservador", "🟡 Moderado", "🔴 Arriscado"],
+        horizontal=True,
+    )
+
+    mapa_risco = {
+        "🟢 Conservador": "Conservador",
+        "🟡 Moderado": "Moderado",
+        "🔴 Arriscado": "Arriscado",
+    }
+    risco_alvo = mapa_risco[perfil_escolhido]
+
+    for cat_nome, lista in CATEGORIAS_ATIVOS.items():
+      filtrados = [item for item in lista if item["risco"] == risco_alvo]
+      if filtrados:
+        st.subheader(f"{cat_nome}")
+        for item in filtrados:
+          with st.expander(f"{item['nome']} — Perfil {item['risco']}"):
+            c1, c2 = st.columns([2, 1])
+            with c1:
+              st.markdown(f"**📖 Para Leigos:** {item['leigos']}")
+              st.markdown(
+                  f"**🏛️ Contexto Político-Econômico:** {item['politica']}"
+              )
+            with c2:
+              st.markdown("**📰 Notícia Atualizada ao Vivo:**")
+              noticias = buscar_noticias_reais(item["busca"])
+              if noticias:
+                for n in noticias:
+                  st.markdown(f"📌 [{n['titulo']}]({n['link']})")
+                  st.caption(f"Fonte: **{n['fonte']}** | {n['data']}")
+              else:
+                st.info("A consultar Google News...")
+        st.divider()
+
+  with tab_cat:
+    cat_selecionada = st.selectbox(
+        "Escolha a classe de ativo:", list(CATEGORIAS_ATIVOS.keys())
+    )
+    for item in CATEGORIAS_ATIVOS[cat_selecionada]:
+      with st.expander(f"{item['nome']} — Perfil {item['risco']}"):
         c1, c2 = st.columns([2, 1])
-
         with c1:
-          st.markdown(f"**💡 Explication para Leigos:** {item['para_leigos']}")
+          st.markdown(f"**📖 Para Leigos:** {item['leigos']}")
           st.markdown(
-              f"**🏛️ Contexto Político-Econômico:** {item['contexto_politico']}"
+              f"**🏛️ Contexto Político-Econômico:** {item['politica']}"
           )
-
         with c2:
-          st.markdown("**📰 Notícia Mais Recente (Google News):**")
-          noticias = buscar_noticias_especificas(item["busca"])
+          st.markdown("**📰 Notícia Atualizada ao Vivo:**")
+          noticias = buscar_noticias_reais(item["busca"])
           if noticias:
             for n in noticias:
               st.markdown(f"📌 [{n['titulo']}]({n['link']})")
               st.caption(f"Fonte: **{n['fonte']}** | {n['data']}")
           else:
-            st.caption("A buscar atualizações da imprensa...")
-
-  with tab_c:
-    st.success(
-        "### 🛡️ Para quem busca estabilidade, dividendos e baixo risco"
-    )
-    exibir_lista_interativa(BANCO_COMPLETO_ATIVOS["conservador"], "🟢")
-
-  with tab_m:
-    st.warning(
-        "### ⚖️ Para quem quer multiplicar patrimônio e aceita variações"
-    )
-    exibir_lista_interativa(BANCO_COMPLETO_ATIVOS["moderado"], "🟡")
-
-  with tab_a:
-    st.error(
-        "### 🚀 Para investidores audaciosos buscando altas valorizações"
-    )
-    exibir_lista_interativa(BANCO_COMPLETO_ATIVOS["arriscado"], "🔴")
+            st.info("A consultar Google News...")
 
 else:
   st.title("🤖 BrokerSimples - Assistente Financeiro Inteligente")
