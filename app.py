@@ -160,7 +160,7 @@ else:
   client = OpenAI(api_key=api_key)
 
 
-# --- FUNÇÃO DE BUSCA DE NOTÍCIAS CORRIGIDA COM USER-AGENT ---
+# --- FUNÇÃO DE BUSCA DE NOTÍCIAS REAL ---
 @st.cache_data(ttl=300)
 def buscar_noticias_reais(termo_busca):
   noticias = []
@@ -242,18 +242,17 @@ elif aba_lateral == "Recomendações de Compra":
   st.header("📈 Universo Completo de Ativos & Análise Político-Econômica")
   st.caption(
       "Explore todas as classes de ativos existentes no mercado nacional e"
-      " internacional, explicadas para leigos e validadas por notícias em"
-      " tempo real."
+      " internacional, acompanhadas de notícias em tempo real."
   )
   st.markdown("---")
 
-  # BANCO UNIVERSAL DE ATIVOS POR CATEGORIA
+  # CATÁLOGO EXPANDIDO COM VÁRIOS ATIVOS EM TODAS AS CLASSES E PERFIS
   CATEGORIAS_ATIVOS = {
       "📈 Ações B3 (Empresas Brasileiras)": [
           {
               "nome": "Itaú Unibanco (ITUB4)",
               "risco": "Conservador",
-              "leigos": (
+              "resumo": (
                   "Maior banco privado do país. Lucra alto cobrando tarifas e"
                   " emprestando com baixo risco."
               ),
@@ -266,7 +265,7 @@ elif aba_lateral == "Recomendações de Compra":
           {
               "nome": "Banco do Brasil (BBAS3)",
               "risco": "Conservador",
-              "leigos": (
+              "resumo": (
                   "Banco estatal líder no crédito para o agronegócio"
                   " brasileiro."
               ),
@@ -277,9 +276,22 @@ elif aba_lateral == "Recomendações de Compra":
               "busca": "Banco do Brasil BBAS3",
           },
           {
+              "nome": "Taesa (TAEE11)",
+              "risco": "Conservador",
+              "resumo": (
+                  "Transmissora de energia elétrica com contratos de longuíssimo"
+                  " prazo."
+              ),
+              "politica": (
+                  "Receitas reajustadas pela inflação, garantindo previsibilidade"
+                  " total independente de trocas de governo."
+              ),
+              "busca": "Taesa TAEE11",
+          },
+          {
               "nome": "Petrobras (PETR4)",
               "risco": "Moderado",
-              "leigos": (
+              "resumo": (
                   "Líder na extração de petróleo no Pré-Sal com baixíssimo custo"
                   " de produção."
               ),
@@ -292,7 +304,7 @@ elif aba_lateral == "Recomendações de Compra":
           {
               "nome": "Vale (VALE3)",
               "risco": "Moderado",
-              "leigos": (
+              "resumo": (
                   "Uma das maiores exportadoras mundiais de minério de ferro."
               ),
               "politica": (
@@ -302,21 +314,55 @@ elif aba_lateral == "Recomendações de Compra":
               "busca": "Vale VALE3",
           },
           {
+              "nome": "WEG (WEGE3)",
+              "risco": "Moderado",
+              "resumo": (
+                  "Fabricante global de motores elétricos e energia renovável."
+              ),
+              "politica": (
+                  "Empresa multinacional beneficiada pela alta do Dólar e pela"
+                  " transição energética global."
+              ),
+              "busca": "WEG WEGE3",
+          },
+          {
               "nome": "Magazine Luiza (MGLU3)",
               "risco": "Arriscado",
-              "leigos": "Gigante do varejo de eletrodomésticos e e-commerce.",
+              "resumo": "Gigante do varejo de eletrodomésticos e e-commerce.",
               "politica": (
                   "Altamente dependente da taxa Selic. Juros baixos e facilidade"
                   " de crédito reaquecem suas vendas."
               ),
               "busca": "Magazine Luiza MGLU3",
           },
+          {
+              "nome": "Movida (MOVI3)",
+              "risco": "Arriscado",
+              "resumo": "Empresa de aluguel de frotas e venda de seminovos.",
+              "politica": (
+                  "Comida por custos de financiamento altos em ciclos de juros"
+                  " elevados, mas com forte potencial na queda da Selic."
+              ),
+              "busca": "Movida MOVI3",
+          },
+          {
+              "nome": "Azul Linhas Aéreas (AZUL4)",
+              "risco": "Arriscado",
+              "resumo": (
+                  "Companhia aérea focada em aviação regional e conexões."
+              ),
+              "politica": (
+                  "Vulnerável à alta do combustível de aviação (querosene) e às"
+                  " oscilações do Dólar."
+              ),
+              "busca": "Azul Linhas Aéreas AZUL4",
+          },
       ],
-      "🏢 Fundos Imobiliários (FIIs - Tijolo e Papel)": [
+      "🏢 Fundos Imobiliários (FIIs - Tijolo, Papel e Shoppings)": [
           {
               "nome": "HGLG11 - CSHG Logística",
               "risco": "Conservador",
-              "leigos": (
+              "resumo": (
                   "Dono de galpões gigantes alugados para empresas de e-commerce"
                   " como Mercado Livre."
               ),
@@ -329,7 +375,7 @@ elif aba_lateral == "Recomendações de Compra":
           {
               "nome": "MXRF11 - Maxi Renda",
               "risco": "Conservador",
-              "leigos": (
+              "resumo": (
                   "Empresta dinheiro para obras do setor imobiliário e paga"
                   " rendimentos todo mês."
               ),
@@ -340,26 +386,78 @@ elif aba_lateral == "Recomendações de Compra":
               "busca": "MXRF11",
           },
           {
+              "nome": "KNRI11 - Kinea Renda Imobiliária",
+              "risco": "Conservador",
+              "resumo": (
+                  "Fundo híbrido com prédios de escritórios de alto padrão e"
+                  " galpões."
+              ),
+              "politica": (
+                  "Diversificação geográfica no eixo SP-RJ garante segurança e"
+                  " estabilidade de locação."
+              ),
+              "busca": "Fundo KNRI11",
+          },
+          {
               "nome": "XPML11 - XP Malls",
               "risco": "Moderado",
-              "leigos": (
+              "resumo": (
                   "Dono de participações nos maiores shopping centers das"
                   " capitais."
               ),
               "politica": (
-                  "Beneficia-se da recuperação do consumo das famílias e da"
-                  " queda da inflação de alimentos/bens."
+                  "Beneficia-se da recuperação do consumo das famílias e do"
+                  " fluxo em datas comemorativas."
               ),
               "busca": "Fundo XPML11",
+          },
+          {
+              "nome": "BTLG11 - BTG Pactual Logística",
+              "risco": "Moderado",
+              "resumo": (
+                  "Galpões logísticos focados no 'último km' de entrega"
+                  " rápida."
+              ),
+              "politica": (
+                  "Alta demanda do varejo eletrônico mantém taxa de vacância"
+                  " próxima de zero."
+              ),
+              "busca": "Fundo BTLG11",
+          },
+          {
+              "nome": "DERA11 - Devant Recebíveis",
+              "risco": "Arriscado",
+              "resumo": (
+                  "Fundo de papel de alto rendimento (High Yield) focado em"
+                  " juros elevados."
+              ),
+              "politica": (
+                  "Entrega rendimentos mensais altos, mas exposto ao risco de"
+                  " crédito em períodos de crise."
+              ),
+              "busca": "Fundo DERA11",
           },
       ],
       "🌐 BDRs & Ações Internacionais (EUA e Global)": [
           {
+              "nome": "Coca-Cola (COCA34)",
+              "risco": "Conservador",
+              "resumo": (
+                  "Líder mundial no setor de bebidas consumida globalmente há"
+                  " décadas."
+              ),
+              "politica": (
+                  "Demanda inelástica: mesmo em recessão mundial, as vendas de"
+                  " bebidas permanecem estáveis."
+              ),
+              "busca": "Coca-Cola BDR COCA34",
+          },
+          {
               "nome": "Apple (AAPL34)",
               "risco": "Moderado",
-              "leigos": (
-                  "Fabricante do iPhone e computadores Mac com ecossistema de"
-                  " serviços global."
+              "resumo": (
+                  "Fabricante do iPhone e computadores Mac com ecossistema"
+                  " global de serviços."
               ),
               "politica": (
                   "Proteção cambial: ao investir na Apple, você protege seu"
@@ -368,9 +466,22 @@ elif aba_lateral == "Recomendações de Compra":
               "busca": "Apple BDR AAPL34",
           },
           {
+              "nome": "Microsoft (MSFT34)",
+              "risco": "Moderado",
+              "resumo": (
+                  "Líder em software corporativo, nuvem (Azure) e parceria com"
+                  " a OpenAI."
+              ),
+              "politica": (
+                  "Captura o crescimento da tecnologia mundial com balanço"
+                  " com mais caixa do que dívidas."
+              ),
+              "busca": "Microsoft BDR MSFT34",
+          },
+          {
               "nome": "Nvidia (NVDC34)",
               "risco": "Arriscado",
-              "leigos": (
+              "resumo": (
                   "Líder absoluta na fabricação de chips e placas para"
                   " Inteligência Artificial."
               ),
@@ -380,12 +491,22 @@ elif aba_lateral == "Recomendações de Compra":
               ),
               "busca": "Nvidia BDR NVDC34",
           },
+          {
+              "nome": "Tesla (TSLA34)",
+              "risco": "Arriscado",
+              "resumo": "Pioneira em carros elétricos e energia limpa.",
+              "politica": (
+                  "Influenciada por subsídios governamentais de energia verde e"
+                  " concorrência de elétricos chineses."
+              ),
+              "busca": "Tesla BDR TSLA34",
+          },
       ],
       "🪙 Criptomoedas (Ativos Digitais)": [
           {
               "nome": "Bitcoin (BTC)",
-              "risco": "Arriscado",
-              "leigos": (
+              "risco": "Moderado",
+              "resumo": (
                   "A primeira e mais valiosa moeda digital descentralizada do"
                   " mundo."
               ),
@@ -398,7 +519,7 @@ elif aba_lateral == "Recomendações de Compra":
           {
               "nome": "Ethereum (ETH)",
               "risco": "Arriscado",
-              "leigos": (
+              "resumo": (
                   "Plataforma digital onde são construídos contratos"
                   " inteligentes e finanças descentralizadas."
               ),
@@ -408,21 +529,60 @@ elif aba_lateral == "Recomendações de Compra":
               ),
               "busca": "Ethereum criptomoeda",
           },
+          {
+              "nome": "Solana (SOL)",
+              "risco": "Arriscado",
+              "resumo": (
+                  "Rede blockchain ultra-rápida focada em micropagamentos e"
+                  " aplicações financeiras."
+              ),
+              "politica": (
+                  "Forte volatilidade atrelada à adoção tecnológica e novos"
+                  " projetos digitais."
+              ),
+              "busca": "Solana criptomoeda",
+          },
       ],
       "💵 Renda Fixa & Títulos Públicos": [
           {
-              "nome": "Tesouro Selic / IPCA+",
+              "nome": "Tesouro Selic (Público)",
               "risco": "Conservador",
-              "leigos": (
+              "resumo": (
                   "Emprestar dinheiro diretamente para o Governo Federal do"
-                  " Brasil."
+                  " Brasil com liquidez diária."
               ),
               "politica": (
-                  "Opção mais segura do país. Garante rendimento acima da"
-                  " inflação independente de quem ganhe as eleições."
+                  "A opção mais segura do país. Rentabilidade acompanha a taxa"
+                  " básica de juros do Banco Central."
               ),
-              "busca": "Tesouro Direto Selic IPCA",
-          }
+              "busca": "Tesouro Direto Selic",
+          },
+          {
+              "nome": "Tesouro IPCA+ (Proteção Inflação)",
+              "risco": "Conservador",
+              "resumo": (
+                  "Título do governo que paga uma taxa fixa de juros mais a"
+                  " variação da inflação."
+              ),
+              "politica": (
+                  "Garante o poder de compra no futuro, imune ao aumento de"
+                  " preços de governos."
+              ),
+              "busca": "Tesouro Direto IPCA",
+          },
+          {
+              "nome": "CDBs de Bancos de Médio Porte",
+              "risco": "Moderado",
+              "resumo": (
+                  "Empréstimo para bancos privados menores com retornos acima"
+                  " de 110% do CDI."
+              ),
+              "politica": (
+                  "Garantido pelo Fundo Garantidor de Crédito (FGC) até R$"
+                  " 250 mil por CPF."
+              ),
+              "busca": "CDB Banco rendimento FGC",
+          },
       ],
   }
 
@@ -452,7 +612,7 @@ elif aba_lateral == "Recomendações de Compra":
           with st.expander(f"{item['nome']} — Perfil {item['risco']}"):
             c1, c2 = st.columns([2, 1])
             with c1:
-              st.markdown(f"**📖 Para Leigos:** {item['leigos']}")
+              st.markdown(f"**📖 Resumo do Ativo:** {item['resumo']}")
               st.markdown(
                   f"**🏛️ Contexto Político-Econômico:** {item['politica']}"
               )
@@ -475,7 +635,7 @@ elif aba_lateral == "Recomendações de Compra":
       with st.expander(f"{item['nome']} — Perfil {item['risco']}"):
         c1, c2 = st.columns([2, 1])
         with c1:
-          st.markdown(f"**📖 Para Leigos:** {item['leigos']}")
+          st.markdown(f"**📖 Resumo do Ativo:** {item['resumo']}")
           st.markdown(
               f"**🏛️ Contexto Político-Econômico:** {item['politica']}"
           )
