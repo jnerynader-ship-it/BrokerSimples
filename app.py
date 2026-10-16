@@ -239,349 +239,252 @@ if aba_lateral == "Últimas Notícias":
         st.divider()
 
 elif aba_lateral == "Recomendações de Compra":
-  st.header("📈 Universo Completo de Ativos & Análise Político-Econômica")
+  st.header("📈 Universo Geral de Ativos & Busca em Tempo Real")
   st.caption(
-      "Explore todas as classes de ativos existentes no mercado nacional e"
-      " internacional, acompanhadas de notícias em tempo real."
+      "Acesse a lista completa de ativos do mercado ou pesquise qualquer outro"
+      " ativo diretamente."
   )
   st.markdown("---")
 
-  # CATÁLOGO EXPANDIDO COM VÁRIOS ATIVOS EM TODAS AS CLASSES E PERFIS
+  # BUSCA UNIVERSAL PARA QUALQUER ATIVO
+  st.subheader("🔍 Consultar Qualquer Ativo Existente")
+  ativo_pesquisado = st.text_input(
+      "Digite o ticker ou nome de QUALQUER ativo (Ex: SANB11, WEGE3, AAPL,"
+      " HGLG11, BTC):"
+  )
+
+  if ativo_pesquisado:
+    st.markdown(f"### 🔎 Resultado para: **{ativo_pesquisado.upper()}**")
+    c1, c2 = st.columns([2, 1])
+    with c1:
+      st.markdown(
+          f"**📖 Resumo do Ativo:** Ativo pesquisado no mercado para avaliação"
+          f" de oportunidade e alocação de carteira."
+      )
+      st.markdown(
+          f"**🏛️ Contexto Político-Econômico:** Impactado pelas flutuações"
+          f" recentes da taxa Selic, inflação (IPCA), decisões fiscais do"
+          f" governo e cenário macroeconômico global."
+      )
+    with c2:
+      st.markdown("**📰 Notícia Atualizada ao Vivo:**")
+      noticias_busca = buscar_noticias_reais(ativo_pesquisado)
+      if noticias_busca:
+        for n in noticias_busca:
+          st.markdown(f"📌 [{n['titulo']}]({n['link']})")
+          st.caption(f"Fonte: **{n['fonte']}** | {n['data']}")
+      else:
+        st.info("Buscando informações no Google News...")
+    st.markdown("---")
+
+  # BASE COMPLETA ORGANIZADA POR CLASSE DE ATIVOS
   CATEGORIAS_ATIVOS = {
-      "📈 Ações B3 (Empresas Brasileiras)": [
+      "📈 Ações B3 (Setor Financeiro)": [
           {
               "nome": "Itaú Unibanco (ITUB4)",
               "risco": "Conservador",
-              "resumo": (
-                  "Maior banco privado do país. Lucra alto cobrando tarifas e"
-                  " emprestando com baixo risco."
-              ),
-              "politica": (
-                  "Em cenários de juros altos ou incerteza política, os bancos"
-                  " mantêm lucros bilionários repassando taxas."
-              ),
+              "resumo": "Maior banco privado do país com forte lucratividade.",
+              "politica": "Protegido por altas taxas de juros e margem de crédito.",
               "busca": "Itaú ITUB4",
           },
           {
               "nome": "Banco do Brasil (BBAS3)",
               "risco": "Conservador",
-              "resumo": (
-                  "Banco estatal líder no crédito para o agronegócio"
-                  " brasileiro."
-              ),
-              "politica": (
-                  "Incentivos do governo ao agronegócio (Plano Safra)"
-                  " impulsionam seus resultados e dividendos."
-              ),
+              "resumo": "Líder no setor agrícola e alta distribuição de dividendos.",
+              "politica": "Incentivos estatais ao agronegócio impulsionam receitas.",
               "busca": "Banco do Brasil BBAS3",
           },
           {
+              "nome": "Bradesco (BBDC4)",
+              "risco": "Moderado",
+              "resumo": "Segundo maior banco privado em reestruturação de carteira.",
+              "politica": "Sensível à inadimplência e à recuperação do crédito.",
+              "busca": "Bradesco BBDC4",
+          },
+          {
+              "nome": "Santander Brasil (SANB11)",
+              "risco": "Moderado",
+              "resumo": "Forte presença no varejo bancário e financiamento.",
+              "politica": "Sensível a decisões do Banco Central sobre a Selic.",
+              "busca": "Santander SANB11",
+          },
+          {
+              "nome": "BTG Pactual (BPAC11)",
+              "risco": "Moderado",
+              "resumo": "Maior banco de investimentos da América Latina.",
+              "politica": "Beneficia-se do volume de fusões e emissões na bolsa.",
+              "busca": "BTG Pactual BPAC11",
+          },
+      ],
+      "⚡ Ações B3 (Energia e Saneamento)": [
+          {
               "nome": "Taesa (TAEE11)",
               "risco": "Conservador",
-              "resumo": (
-                  "Transmissora de energia elétrica com contratos de longuíssimo"
-                  " prazo."
-              ),
-              "politica": (
-                  "Receitas reajustadas pela inflação, garantindo previsibilidade"
-                  " total independente de trocas de governo."
-              ),
+              "resumo": "Transmissora de energia com contratos de longo prazo.",
+              "politica": "Receita indexada à inflação, imune a crises passageiras.",
               "busca": "Taesa TAEE11",
           },
           {
+              "nome": "Eletrobras (ELET3)",
+              "risco": "Conservador",
+              "resumo": "Líder em geração e transmissão privatizada.",
+              "politica": "Mudanças regulatórias no setor elétrico afetam cotações.",
+              "busca": "Eletrobras ELET3",
+          },
+          {
+              "nome": "CPFL Energia (CPFE3)",
+              "risco": "Conservador",
+              "resumo": "Distribuidora e geradora com altos dividendos.",
+              "politica": "Estabilidade de consumo em todas as fases da economia.",
+              "busca": "CPFL Energia CPFE3",
+          },
+          {
+              "nome": "Sabesp (SBSP3)",
+              "risco": "Moderado",
+              "resumo": "Companhia de saneamento do estado de SP.",
+              "politica": "Privatização e novos marcos regulatórios de saneamento.",
+              "busca": "Sabesp SBSP3",
+          },
+      ],
+      "🛢️ Ações B3 (Commodities e Indústria)": [
+          {
               "nome": "Petrobras (PETR4)",
               "risco": "Moderado",
-              "resumo": (
-                  "Líder na extração de petróleo no Pré-Sal com baixíssimo custo"
-                  " de produção."
-              ),
-              "politica": (
-                  "Sensível a discursos sobre preços de combustíveis e conflitos"
-                  " no Oriente Médio que elevam o petróleo."
-              ),
+              "resumo": "Líder em exploração de petróleo no Pré-Sal.",
+              "politica": "Influenciada por políticas de preços e cotação do Brent.",
               "busca": "Petrobras PETR4",
           },
           {
               "nome": "Vale (VALE3)",
               "risco": "Moderado",
-              "resumo": (
-                  "Uma das maiores exportadoras mundiais de minério de ferro."
-              ),
-              "politica": (
-                  "Depende diretamente do crescimento da China e da cotação do"
-                  " Dólar no mercado internacional."
-              ),
+              "resumo": "Exportadora global de minério de ferro.",
+              "politica": "Depende da demanda da China e do Dólar.",
               "busca": "Vale VALE3",
+          },
+          {
+              "nome": "Gerdau (GGBR4)",
+              "risco": "Moderado",
+              "resumo": "Siderúrgica com presença forte no Brasil e EUA.",
+              "politica": "Impactada por investimentos em infraestrutura global.",
+              "busca": "Gerdau GGBR4",
           },
           {
               "nome": "WEG (WEGE3)",
               "risco": "Moderado",
-              "resumo": (
-                  "Fabricante global de motores elétricos e energia renovável."
-              ),
-              "politica": (
-                  "Empresa multinacional beneficiada pela alta do Dólar e pela"
-                  " transição energética global."
-              ),
+              "resumo": "Fabricante global de motores e energia renovável.",
+              "politica": "Beneficiada pela transição energética e Dólar alto.",
               "busca": "WEG WEGE3",
+          },
+          {
+              "nome": "Suzano (SUZB3)",
+              "risco": "Moderado",
+              "resumo": "Maior produtora mundial de celulose de eucalipto.",
+              "politica": "Faturamento em Dólar protege contra inflação interna.",
+              "busca": "Suzano SUZB3",
+          },
+      ],
+      "🛍️ Ações B3 (Varejo e Consumo)": [
+          {
+              "nome": "Ambev (ABEV3)",
+              "risco": "Conservador",
+              "resumo": "Líder no mercado de bebidas e cervejas na América Latina.",
+              "politica": "Consumo resiliente com forte geração de caixa.",
+              "busca": "Ambev ABEV3",
+          },
+          {
+              "nome": "Lojas Renner (LREN3)",
+              "risco": "Moderado",
+              "resumo": "Rede de vestuário e moda com forte presença física/digital.",
+              "politica": "Sensível ao poder de compra e crédito ao consumidor.",
+              "busca": "Lojas Renner LREN3",
           },
           {
               "nome": "Magazine Luiza (MGLU3)",
               "risco": "Arriscado",
-              "resumo": "Gigante do varejo de eletrodomésticos e e-commerce.",
-              "politica": (
-                  "Altamente dependente da taxa Selic. Juros baixos e facilidade"
-                  " de crédito reaquecem suas vendas."
-              ),
+              "resumo": "Varejista de eletrodomésticos e e-commerce.",
+              "politica": "Reage fortemente a reduções na taxa Selic.",
               "busca": "Magazine Luiza MGLU3",
           },
           {
-              "nome": "Movida (MOVI3)",
+              "nome": "Casas Bahia (BHIA3)",
               "risco": "Arriscado",
-              "resumo": "Empresa de aluguel de frotas e venda de seminovos.",
-              "politica": (
-                  "Comida por custos de financiamento altos em ciclos de juros"
-                  " elevados, mas com forte potencial na queda da Selic."
-              ),
-              "busca": "Movida MOVI3",
-          },
-          {
-              "nome": "Azul Linhas Aéreas (AZUL4)",
-              "risco": "Arriscado",
-              "resumo": (
-                  "Companhia aérea focada em aviação regional e conexões."
-              ),
-              "politica": (
-                  "Vulnerável à alta do combustível de aviação (querosene) e às"
-                  " oscilações do Dólar."
-              ),
-              "busca": "Azul Linhas Aéreas AZUL4",
+              "resumo": "Tradicional rede de varejo em reestruturação.",
+              "politica": "Depende de renegociação de dívidas e juros baixos.",
+              "busca": "Casas Bahia BHIA3",
           },
       ],
-      "🏢 Fundos Imobiliários (FIIs - Tijolo, Papel e Shoppings)": [
+      "🏢 Fundos Imobiliários (FIIs - Todas as Classes)": [
           {
               "nome": "HGLG11 - CSHG Logística",
               "risco": "Conservador",
-              "resumo": (
-                  "Dono de galpões gigantes alugados para empresas de e-commerce"
-                  " como Mercado Livre."
-              ),
-              "politica": (
-                  "Imune a crises políticas por ter contratos de aluguel de"
-                  " longo prazo com garantias sólidas."
-              ),
+              "resumo": "Galpões logísticos alugados para grandes empresas.",
+              "politica": "Contratos atípicos de longo prazo protegem renda.",
               "busca": "Fundo HGLG11",
           },
           {
               "nome": "MXRF11 - Maxi Renda",
               "risco": "Conservador",
-              "resumo": (
-                  "Empresta dinheiro para obras do setor imobiliário e paga"
-                  " rendimentos todo mês."
-              ),
-              "politica": (
-                  "Protege o patrimônio porque seus rendimentos corrigem"
-                  " automaticamente com a inflação (IPCA)."
-              ),
+              "resumo": "Fundo de dívida imobiliária (CRIs).",
+              "politica": "Rendimentos corrigidos pela inflação e CDI.",
               "busca": "MXRF11",
           },
           {
-              "nome": "KNRI11 - Kinea Renda Imobiliária",
+              "nome": "KNRI11 - Kinea Renda",
               "risco": "Conservador",
-              "resumo": (
-                  "Fundo híbrido com prédios de escritórios de alto padrão e"
-                  " galpões."
-              ),
-              "politica": (
-                  "Diversificação geográfica no eixo SP-RJ garante segurança e"
-                  " estabilidade de locação."
-              ),
+              "resumo": "Fundo híbrido de escritórios e galpões.",
+              "politica": "Alta qualidade de imóveis nas capitais.",
               "busca": "Fundo KNRI11",
           },
           {
               "nome": "XPML11 - XP Malls",
               "risco": "Moderado",
-              "resumo": (
-                  "Dono de participações nos maiores shopping centers das"
-                  " capitais."
-              ),
-              "politica": (
-                  "Beneficia-se da recuperação do consumo das famílias e do"
-                  " fluxo em datas comemorativas."
-              ),
+              "resumo": "Participação nos principais shoppings do país.",
+              "politica": "Beneficia-se das vendas no varejo e fluxo de pessoas.",
               "busca": "Fundo XPML11",
           },
           {
-              "nome": "BTLG11 - BTG Pactual Logística",
+              "nome": "BTLG11 - BTG Logística",
               "risco": "Moderado",
-              "resumo": (
-                  "Galpões logísticos focados no 'último km' de entrega"
-                  " rápida."
-              ),
-              "politica": (
-                  "Alta demanda do varejo eletrônico mantém taxa de vacância"
-                  " próxima de zero."
-              ),
+              "resumo": "Galpões estratégicos nas proximidades de SP.",
+              "politica": "Alta demanda por entregas rápidas do e-commerce.",
               "busca": "Fundo BTLG11",
           },
-          {
-              "nome": "DERA11 - Devant Recebíveis",
-              "risco": "Arriscado",
-              "resumo": (
-                  "Fundo de papel de alto rendimento (High Yield) focado em"
-                  " juros elevados."
-              ),
-              "politica": (
-                  "Entrega rendimentos mensais altos, mas exposto ao risco de"
-                  " crédito em períodos de crise."
-              ),
-              "busca": "Fundo DERA11",
-          },
       ],
-      "🌐 BDRs & Ações Internacionais (EUA e Global)": [
-          {
-              "nome": "Coca-Cola (COCA34)",
-              "risco": "Conservador",
-              "resumo": (
-                  "Líder mundial no setor de bebidas consumida globalmente há"
-                  " décadas."
-              ),
-              "politica": (
-                  "Demanda inelástica: mesmo em recessão mundial, as vendas de"
-                  " bebidas permanecem estáveis."
-              ),
-              "busca": "Coca-Cola BDR COCA34",
-          },
+      "🌐 BDRs, Criptos & Mercado Internacional": [
           {
               "nome": "Apple (AAPL34)",
               "risco": "Moderado",
-              "resumo": (
-                  "Fabricante do iPhone e computadores Mac com ecossistema"
-                  " global de serviços."
-              ),
-              "politica": (
-                  "Proteção cambial: ao investir na Apple, você protege seu"
-                  " dinheiro contra a desvalorização do Real."
-              ),
+              "resumo": "Tecnologia global, iPhones e serviços.",
+              "politica": "Proteção patrimonial em moeda forte (Dólar).",
               "busca": "Apple BDR AAPL34",
           },
           {
               "nome": "Microsoft (MSFT34)",
               "risco": "Moderado",
-              "resumo": (
-                  "Líder em software corporativo, nuvem (Azure) e parceria com"
-                  " a OpenAI."
-              ),
-              "politica": (
-                  "Captura o crescimento da tecnologia mundial com balanço"
-                  " com mais caixa do que dívidas."
-              ),
+              "resumo": "Líder em softwares, nuvem e Inteligência Artificial.",
+              "politica": "Pioneira na transformação digital corporativa.",
               "busca": "Microsoft BDR MSFT34",
           },
           {
               "nome": "Nvidia (NVDC34)",
               "risco": "Arriscado",
-              "resumo": (
-                  "Líder absoluta na fabricação de chips e placas para"
-                  " Inteligência Artificial."
-              ),
-              "politica": (
-                  "Submetida a disputas tecnológicas entre EUA e China. Alto"
-                  " potencial de valorização futura."
-              ),
+              "resumo": "Fabricante de processadores para IA.",
+              "politica": "Demanda gigante por tecnologia de ponta.",
               "busca": "Nvidia BDR NVDC34",
           },
           {
-              "nome": "Tesla (TSLA34)",
-              "risco": "Arriscado",
-              "resumo": "Pioneira em carros elétricos e energia limpa.",
-              "politica": (
-                  "Influenciada por subsídios governamentais de energia verde e"
-                  " concorrência de elétricos chineses."
-              ),
-              "busca": "Tesla BDR TSLA34",
-          },
-      ],
-      "🪙 Criptomoedas (Ativos Digitais)": [
-          {
               "nome": "Bitcoin (BTC)",
-              "risco": "Moderado",
-              "resumo": (
-                  "A primeira e mais valiosa moeda digital descentralizada do"
-                  " mundo."
-              ),
-              "politica": (
-                  "Usado mundialmente como reserva de valor alternativa ao"
-                  " dinheiro emitido por governos com inflação."
-              ),
+              "risco": "Arriscado",
+              "resumo": "Principal moeda digital descentralizada.",
+              "politica": "Reserva de valor imune à emissão de governos.",
               "busca": "Bitcoin criptomoeda",
           },
           {
               "nome": "Ethereum (ETH)",
               "risco": "Arriscado",
-              "resumo": (
-                  "Plataforma digital onde são construídos contratos"
-                  " inteligentes e finanças descentralizadas."
-              ),
-              "politica": (
-                  "Impactado por regulamentações de órgãos financeiros dos EUA"
-                  " (SEC) e da União Europeia."
-              ),
+              "resumo": "Rede para contratos inteligentes e finanças digitais.",
+              "politica": "Desenvolvimento tecnológico e adoção global.",
               "busca": "Ethereum criptomoeda",
-          },
-          {
-              "nome": "Solana (SOL)",
-              "risco": "Arriscado",
-              "resumo": (
-                  "Rede blockchain ultra-rápida focada em micropagamentos e"
-                  " aplicações financeiras."
-              ),
-              "politica": (
-                  "Forte volatilidade atrelada à adoção tecnológica e novos"
-                  " projetos digitais."
-              ),
-              "busca": "Solana criptomoeda",
-          },
-      ],
-      "💵 Renda Fixa & Títulos Públicos": [
-          {
-              "nome": "Tesouro Selic (Público)",
-              "risco": "Conservador",
-              "resumo": (
-                  "Emprestar dinheiro diretamente para o Governo Federal do"
-                  " Brasil com liquidez diária."
-              ),
-              "politica": (
-                  "A opção mais segura do país. Rentabilidade acompanha a taxa"
-                  " básica de juros do Banco Central."
-              ),
-              "busca": "Tesouro Direto Selic",
-          },
-          {
-              "nome": "Tesouro IPCA+ (Proteção Inflação)",
-              "risco": "Conservador",
-              "resumo": (
-                  "Título do governo que paga uma taxa fixa de juros mais a"
-                  " variação da inflação."
-              ),
-              "politica": (
-                  "Garante o poder de compra no futuro, imune ao aumento de"
-                  " preços de governos."
-              ),
-              "busca": "Tesouro Direto IPCA",
-          },
-          {
-              "nome": "CDBs de Bancos de Médio Porte",
-              "risco": "Moderado",
-              "resumo": (
-                  "Empréstimo para bancos privados menores com retornos acima"
-                  " de 110% do CDI."
-              ),
-              "politica": (
-                  "Garantido pelo Fundo Garantidor de Crédito (FGC) até R$"
-                  " 250 mil por CPF."
-              ),
-              "busca": "CDB Banco rendimento FGC",
           },
       ],
   }
@@ -596,7 +499,6 @@ elif aba_lateral == "Recomendações de Compra":
         ["🟢 Conservador", "🟡 Moderado", "🔴 Arriscado"],
         horizontal=True,
     )
-
     mapa_risco = {
         "🟢 Conservador": "Conservador",
         "🟡 Moderado": "Moderado",
