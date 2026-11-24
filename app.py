@@ -9,7 +9,7 @@ import yfinance as yf
 
 # Configuração inicial do app
 st.set_page_config(
-    page_title="BrokerSimples | Terminal Financeiro & Recomendação",
+    page_title="BrokerSimples | Terminal Financeiro & Educacional",
     page_icon="📈",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -19,36 +19,48 @@ st.set_page_config(
 if os.path.exists("logo.png"):
   st.logo("logo.png", icon_image="logo.png")
 
-# Estilização visual padrão
+# Estilização visual (Tema Claro / Fundo Branco)
 st.markdown(
     """
     <style>
+    /* Fundo principal branco limpo */
     .stApp {
-        background: linear-gradient(rgba(15, 23, 42, 0.90), rgba(15, 23, 42, 0.96)), 
-                    url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1920&auto=format&fit=crop');
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
-        color: #f8fafc !important;
+        background-color: #ffffff !important;
+        background-image: none !important;
+        color: #0f172a !important;
     }
 
+    /* Barra lateral em cinza muito claro para contraste sutil */
     [data-testid="stSidebar"] {
-        background-color: rgba(30, 41, 59, 0.95) !important;
+        background-color: #f8fafc !important;
+        border-right: 1px solid #e2e8f0 !important;
     }
 
+    /* Cartões de métricas, mensagens de chat e inputs */
     div[data-testid="stMetricValue"], 
     .stChatMessage, 
     .stTextInput > div > div {
-        background-color: rgba(30, 41, 59, 0.85) !important;
-        color: #f8fafc !important;
+        background-color: #f1f5f9 !important;
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1 !important;
         border-radius: 8px;
-        backdrop-filter: blur(4px);
     }
 
-    h1, h2, h3, h4, h5, h6, p, label, span {
-        color: #f8fafc !important;
+    /* Todos os textos, títulos e rótulos em azul-marinho escuro/preto */
+    h1, h2, h3, h4, h5, h6, p, label, span, div {
+        color: #0f172a !important;
     }
 
+    /* Links das notícias em azul vibrante */
+    a {
+        color: #2563eb !important;
+        text-decoration: none !important;
+    }
+    a:hover {
+        text-decoration: underline !important;
+    }
+
+    /* Botões */
     .stButton > button {
         background-color: #2563eb !important;
         color: #ffffff !important;
@@ -56,18 +68,21 @@ st.markdown(
         border-radius: 6px !important;
         font-weight: 600 !important;
     }
-
+    .stButton > button p, .stButton > button span {
+        color: #ffffff !important;
+    }
     .stButton > button:hover {
         background-color: #1d4ed8 !important;
     }
 
+    /* Caixa de entrada do chat */
     [data-testid="stChatInput"] {
         border: 1px solid #2563eb !important;
         border-radius: 12px !important;
-        box-shadow: 0 4px 15px rgba(37, 99, 235, 0.25) !important;
-        background-color: rgba(15, 23, 42, 0.9) !important;
+        background-color: #f8fafc !important;
     }
 
+    /* Ajuste do tamanho da logo */
     [data-testid="stLogo"] {
         max-height: 80px !important;
         height: auto !important;
@@ -141,7 +156,12 @@ st.sidebar.markdown("---")
 st.sidebar.subheader("📊 Navegação de Mercado")
 aba_lateral = st.sidebar.radio(
     "Ir Para:",
-    ["Chat Principal", "Últimas Notícias", "Recomendações Estratégicas"],
+    [
+        "Chat Principal",
+        "Últimas Notícias",
+        "Recomendações Estratégicas",
+        "Educacional",
+    ],
 )
 
 # Chave OpenAI
@@ -153,7 +173,7 @@ except Exception:
 client = OpenAI(api_key=api_key) if api_key else None
 
 
-# --- FUNÇÃO DE BUSCA DE NOTÍCIAS MAIS RECENTES (ÚLTIMAS 24H ORDENADAS POR DATA / TTL 30 MIN) ---
+# --- FUNÇÃO DE BUSCA DE NOTÍCIAS MAIS RECENTES (TTL 30 MIN) ---
 @st.cache_data(ttl=1800)
 def buscar_noticias_reais(termo_busca):
   noticias = []
@@ -336,7 +356,7 @@ elif aba_lateral == "Recomendações Estratégicas":
           },
           {
               "ativo": "Magazine Luiza (MGLU3) / Movida (MOVI3)",
-              "categoria": "Ações B3 — Varejo e Consumo Ciclico",
+              "categoria": "Ações B3 — Varejo e Consumo Cíclico",
               "risco": "Arriscado",
               "tese": (
                   "Ativos de alto beta com grande potencial de valorização em"
@@ -398,8 +418,8 @@ elif aba_lateral == "Recomendações Estratégicas":
           },
           {
               "ativo": "Nvidia (NVDC34 / NVDA)",
-              "categoria": "BDR Internacional — Semiconductores / IA",
               "risco": "Arriscado",
+              "categoria": "BDR Internacional — Semicondutores / IA",
               "tese": (
                   "Monopólio prático no fornecimento de processadores (GPUs)"
                   " para treinamento de redes neurais."
@@ -508,6 +528,125 @@ elif aba_lateral == "Recomendações Estratégicas":
         MATRIZ_RECOMENDACOES["Internacionais (EUA / BDRs / Cripto / Global)"]
     )
 
+elif aba_lateral == "Educacional":
+  st.header("🎓 Academia BrokerSimples: Guia Prático do Investidor")
+  st.caption(
+      "Aprenda os conceitos fundamentais do mercado financeiro, classes de"
+      " ativos, perfis de risco e indicadores macroeconômicos de forma simples."
+  )
+  st.markdown("---")
+
+  tab_classes, tab_perfis, tab_macro, tab_glossario = st.tabs([
+      "📦 Classes de Ativos",
+      "🎯 Perfis de Risco",
+      "🏛️ Macroeconomia & Política",
+      "📖 Glossário Rápido",
+  ])
+
+  with tab_classes:
+    st.subheader("Entenda onde o seu dinheiro trabalha")
+    col_e1, col_e2 = st.columns(2)
+
+    with col_e1:
+      with st.expander("📈 Ações (B3 - Bolsa Brasileira)", expanded=True):
+        st.markdown(
+            "**O que são:** Pequenas fatias de empresas listadas na bolsa (ex:"
+            " Itaú, Petrobras, WEG).\n\n"
+            "**Como você ganha:** Com a valorização do preço da ação na bolsa e"
+            " com a distribuição de parte dos lucros (**Dividendos** e"
+            " **JCP**)."
+        )
+
+      with st.expander("🏢 Fundos Imobiliários (FIIs)", expanded=True):
+        st.markdown(
+            "**O que são:** Condomínios de investidores que compram grandes"
+            " imóveis (galpões logísticos, shoppings) ou títulos de dívida"
+            " imobiliária (CRIs).\n\n"
+            "**Como você ganha:** Recebendo aluguéis mensais proporcionais às"
+            " suas cotas, geralmente isentos de Imposto de Renda para pessoa"
+            " física."
+        )
+
+      with st.expander("💵 Renda Fixa & Tesouro Direto", expanded=True):
+        st.markdown(
+            "**O que são:** Empréstimos que você faz ao Governo Federal"
+            " (Tesouro Selic, Tesouro IPCA+) ou a bancos (CDBs, LCIs, LCAs) em"
+            " troca de juros combinados.\n\n"
+            "**Como você ganha:** Devolução do valor investido acrescido de"
+            " rendimento previsível e alta segurança."
+        )
+
+    with col_e2:
+      with st.expander("🌐 BDRs e Investimentos Internacionais", expanded=True):
+        st.markdown(
+            "**O que são:** Recibos negociados na B3 em Reais que representam"
+            " ações de gigantes estrangeiras (ex: Apple, Microsoft, Nvidia).\n\n"
+            "**Como você ganha:** Acompanhando o lucro das empresas americanas"
+            " e ganhando proteção cambial contra a variação do **Dólar**."
+        )
+
+      with st.expander("🪙 Criptomoedas e Ativos Digitais", expanded=True):
+        st.markdown(
+            "**O que são:** Moedas e redes digitais descentralizadas protegidas"
+            " por criptografia (ex: Bitcoin, Ethereum).\n\n"
+            "**Como você ganha:** Valorização de mercado pela escassez e adoção"
+            " tecnológica global, exigindo tolerância a fortes oscilações."
+        )
+
+  with tab_perfis:
+    st.subheader("Como os ativos são classificados por nível de risco")
+    st.markdown(
+        "Antes de escolher um ativo, alinhe o seu objetivo financeiro ao"
+        " comportamento de cada categoria:"
+    )
+
+    st.success(
+        "🟢 **Perfil Conservador (Segurança e Previsibilidade):** Foco em"
+        " preservar o patrimônio, vencer a inflação e receber renda mensal"
+        " constante. Exemplos: Tesouro Selic, Bancos sólidos (ITUB4, BBAS3),"
+        " Transmissoras de Energia (TAEE11) e FIIs consolidados (HGLG11,"
+        " MXRF11)."
+    )
+
+    st.warning(
+        "🟡 **Perfil Moderado (Equilíbrio entre Renda e Crescimento):** Aceita"
+        " oscilações intermediárias ligadas aos ciclos econômicos e ao câmbio"
+        " em busca de retornos maiores no médio/longo prazo. Exemplos:"
+        " Petrobras (PETR4), Vale (VALE3), WEG (WEGE3), Apple (AAPL34) e FIIs"
+        " de Shoppings (XPML11)."
+    )
+
+    st.error(
+        "🔴 **Perfil Arriscado (Alto Potencial e Volatilidade):** Voltado a"
+        " investidores com horizonte de longo prazo que suportam quedas"
+        " bruscas em busca de multiplicação expressiva. Exemplos: Varejo"
+        " sensível a juros (MGLU3), Aviação (AZUL4), Semicondutores de IA"
+        " (NVDC34) e Criptomoedas (BTC, ETH)."
+    )
+
+  with tab_macro:
+    st.subheader("Como a Política e a Economia movem os preços")
+    st.markdown("""
+        * **Taxa Selic (Juros Básicos do Brasil):** Quando a Selic sobe, a Renda Fixa paga mais e empresas endividadas (como varejistas) sofrem porque o crédito fica caro. Quando a Selic cai, o dinheiro migra para a Bolsa e FIIs.
+        * **Inflação (IPCA):** É o aumento contínuo dos preços. Títulos **Tesouro IPCA+**, empresas de energia elétrica e fundos de papel protegem o seu poder de compra contra ela.
+        * **Câmbio (Dólar USD/BRL):** Quando o Dólar sobe, empresas exportadoras brasileiras (Vale, Suzano, WEG) e investimentos internacionais (BDRs) faturam mais em Reais. Companhias aéreas e importadoras têm custos maiores.
+        * **Política Fiscal e Eleições:** Gastos públicos elevados ou incertezas eleitorais aumentam o prêmio de risco exigido pelos investidores, gerando volatilidade nas estatais e nos juros futuros.
+        * **Federal Reserve (Fed - Banco Central dos EUA):** As decisões de juros americanos ditam o fluxo global de dólares. Juros menores nos EUA costumam atrair capital estrangeiro para países emergentes como o Brasil.
+        """)
+
+  with tab_glossario:
+    st.subheader("Dicionário Essencial do Mercado Financeiro")
+    st.markdown("""
+        | Termo | Significado Prático |
+        | :--- | :--- |
+        | **Ticker** | Código de negociação do ativo na bolsa (ex: `PETR4` para ações, `HGLG11` para FIIs). |
+        | **Dividend Yield (DY)** | Percentual que mostra quanto uma empresa ou FII pagou em proventos nos últimos 12 meses em relação ao preço atual da cota. |
+        | **P/L (Preço sobre Lucro)** | Indica em quantos anos o investidor recuperaria o capital investido apenas com os lucros atuais da empresa. |
+        | **Liquidez** | Facilidade e velocidade com que você consegue vender um ativo e transformar em dinheiro na conta sem perder valor. |
+        | **Volatilidade** | Intensidade e frequência com que o preço de um ativo sobe e desce em um período. |
+        | **FGC** | Fundo Garantidor de Créditos: protege investimentos bancários (como CDBs) em até R$ 250 mil por CPF e instituição. |
+        """)
+
 else:
   st.title("🤖 BrokerSimples - Assistente Financeiro Inteligente")
   st.markdown("Faça perguntas sobre o mercado ou peça análises ao assistente.")
@@ -571,7 +710,7 @@ else:
 st.markdown("---")
 st.markdown(
     """
-    <div style='text-align: center; color: #94a3b8; font-size: 12px; padding: 10px;'>
+    <div style='text-align: center; color: #64748b; font-size: 12px; padding: 10px;'>
         <strong>Aviso Legal (Disclaimer):</strong> O BrokerSimples é uma ferramenta educacional. As informações não constituem recomendação direta de investimento.
     </div>
 """,
