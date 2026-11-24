@@ -19,7 +19,7 @@ st.set_page_config(
 if os.path.exists("logo.png"):
   st.logo("logo.png", icon_image="logo.png")
 
-# Estilização visual (Tema Escuro Original Restaurado)
+# Estilização visual (Tema Escuro Original)
 st.markdown(
     """
     <style>
@@ -417,8 +417,8 @@ elif aba_lateral == "Recomendações Estratégicas":
           },
           {
               "ativo": "Nvidia (NVDC34 / NVDA)",
-              "risco": "Arriscado",
               "categoria": "BDR Internacional — Semicondutores / IA",
+              "risco": "Arriscado",
               "tese": (
                   "Monopólio prático no fornecimento de processadores (GPUs)"
                   " para treinamento de redes neurais."
@@ -534,7 +534,7 @@ elif aba_lateral == "Educacional":
       " ativos, perfis de risco e indicadores macroeconômicos de forma simples."
   )
 
-  # --- BOTÃO INTERATIVO LOGO ABAIXO DA INTRODUÇÃO ---
+  # --- BOTÃO INTERATIVO "QUER APRENDER MAIS?" ---
   if st.button("🚀 Quer aprender mais?"):
     st.session_state.mostrar_plano = not st.session_state.mostrar_plano
 
