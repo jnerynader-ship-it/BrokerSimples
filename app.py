@@ -19,48 +19,36 @@ st.set_page_config(
 if os.path.exists("logo.png"):
   st.logo("logo.png", icon_image="logo.png")
 
-# Estilização visual (Tema Claro / Fundo Branco)
+# Estilização visual (Tema Escuro Original Restaurado)
 st.markdown(
     """
     <style>
-    /* Fundo principal branco limpo */
     .stApp {
-        background-color: #ffffff !important;
-        background-image: none !important;
-        color: #0f172a !important;
+        background: linear-gradient(rgba(15, 23, 42, 0.90), rgba(15, 23, 42, 0.96)), 
+                    url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1920&auto=format&fit=crop');
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        color: #f8fafc !important;
     }
 
-    /* Barra lateral em cinza muito claro para contraste sutil */
     [data-testid="stSidebar"] {
-        background-color: #f8fafc !important;
-        border-right: 1px solid #e2e8f0 !important;
+        background-color: rgba(30, 41, 59, 0.95) !important;
     }
 
-    /* Cartões de métricas, mensagens de chat e inputs */
     div[data-testid="stMetricValue"], 
     .stChatMessage, 
     .stTextInput > div > div {
-        background-color: #f1f5f9 !important;
-        color: #0f172a !important;
-        border: 1px solid #cbd5e1 !important;
+        background-color: rgba(30, 41, 59, 0.85) !important;
+        color: #f8fafc !important;
         border-radius: 8px;
+        backdrop-filter: blur(4px);
     }
 
-    /* Todos os textos, títulos e rótulos em azul-marinho escuro/preto */
-    h1, h2, h3, h4, h5, h6, p, label, span, div {
-        color: #0f172a !important;
+    h1, h2, h3, h4, h5, h6, p, label, span {
+        color: #f8fafc !important;
     }
 
-    /* Links das notícias em azul vibrante */
-    a {
-        color: #2563eb !important;
-        text-decoration: none !important;
-    }
-    a:hover {
-        text-decoration: underline !important;
-    }
-
-    /* Botões */
     .stButton > button {
         background-color: #2563eb !important;
         color: #ffffff !important;
@@ -68,21 +56,18 @@ st.markdown(
         border-radius: 6px !important;
         font-weight: 600 !important;
     }
-    .stButton > button p, .stButton > button span {
-        color: #ffffff !important;
-    }
+
     .stButton > button:hover {
         background-color: #1d4ed8 !important;
     }
 
-    /* Caixa de entrada do chat */
     [data-testid="stChatInput"] {
         border: 1px solid #2563eb !important;
         border-radius: 12px !important;
-        background-color: #f8fafc !important;
+        box-shadow: 0 4px 15px rgba(37, 99, 235, 0.25) !important;
+        background-color: rgba(15, 23, 42, 0.9) !important;
     }
 
-    /* Ajuste do tamanho da logo */
     [data-testid="stLogo"] {
         max-height: 80px !important;
         height: auto !important;
@@ -90,6 +75,17 @@ st.markdown(
     [data-testid="stLogo"] img {
         max-height: 80px !important;
         width: auto !important;
+    }
+
+    /* Cartão de assinatura do Plano Mensal */
+    .plano-card {
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98));
+        border: 2px solid #2563eb;
+        border-radius: 12px;
+        padding: 24px;
+        margin-top: 12px;
+        margin-bottom: 20px;
+        box-shadow: 0 8px 25px rgba(37, 99, 235, 0.3);
     }
     </style>
 """,
@@ -133,6 +129,9 @@ if "historico" not in st.session_state:
 
 if "selected_prompt" not in st.session_state:
   st.session_state.selected_prompt = ""
+
+if "mostrar_plano" not in st.session_state:
+  st.session_state.mostrar_plano = False
 
 # --- BARRA LATERAL ---
 st.sidebar.title("💬 Histórico de Prompts")
@@ -534,6 +533,59 @@ elif aba_lateral == "Educacional":
       "Aprenda os conceitos fundamentais do mercado financeiro, classes de"
       " ativos, perfis de risco e indicadores macroeconômicos de forma simples."
   )
+
+  # --- BOTÃO INTERATIVO LOGO ABAIXO DA INTRODUÇÃO ---
+  if st.button("🚀 Quer aprender mais?"):
+    st.session_state.mostrar_plano = not st.session_state.mostrar_plano
+
+  # --- PAYWALL / ASSINATURA DO PLANO MENSAL ---
+  if st.session_state.mostrar_plano:
+    st.markdown(
+        """
+        <div class="plano-card">
+            <h3>💎 BrokerSimples Academy PRO — Acesso Completo</h3>
+            <p>Para desbloquear aulas avançadas em vídeo, análise de balanços, mentorias semanais ao vivo e carteiras recomendadas exclusivas, assine o nosso plano mensal:</p>
+            <ul>
+                <li>✅ <strong>Trilha Completa de Investimentos:</strong> Do zero à montagem de carteira global.</li>
+                <li>✅ <strong>Relatórios Político-Econômicos:</strong> Análises aprofundadas toda semana.</li>
+                <li>✅ <strong>Alertas de Oportunidade:</strong> Notificações em tempo real de entrada e saída.</li>
+                <li>✅ <strong>Suporte Direto com Analistas:</strong> Tire dúvidas sobre qualquer ativo da sua carteira.</li>
+            </ul>
+            <h4>💰 Investimento: R$ 49,90 / mês <span style="font-size: 13px; color: #94a3b8;">(Cancele quando quiser)</span></h4>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    with st.form("form_assinatura_plano"):
+      st.markdown("**Preencha seus dados para liberar o acesso imediato:**")
+      col_p1, col_p2 = st.columns(2)
+      with col_p1:
+        nome_assinante = st.text_input("Nome Completo")
+        email_assinante = st.text_input("E-mail de Acesso")
+      with col_p2:
+        metodo_pagamento = st.selectbox(
+            "Forma de Pagamento",
+            ["Cartão de Crédito (Liberação Imediata)", "PIX Mensal", "Boleto"],
+        )
+        cpf_assinante = st.text_input("CPF (para emissão de nota)")
+
+      confirmar_assinatura = st.form_submit_button(
+          "💳 Assinar Plano Mensal (R$ 49,90/mês)"
+      )
+
+      if confirmar_assinatura:
+        if nome_assinante and email_assinante:
+          st.success(
+              f"🎉 Parabéns, **{nome_assinante}**! Seu pedido de assinatura do"
+              " **Plano Mensal BrokerSimples PRO** foi registrado. Enviamos o"
+              f" link de pagamento e acesso para **{email_assinante}**."
+          )
+        else:
+          st.error(
+              "⚠️ Por favor, preencha seu Nome Completo e E-mail para continuar."
+          )
+
   st.markdown("---")
 
   tab_classes, tab_perfis, tab_macro, tab_glossario = st.tabs([
@@ -710,7 +762,7 @@ else:
 st.markdown("---")
 st.markdown(
     """
-    <div style='text-align: center; color: #64748b; font-size: 12px; padding: 10px;'>
+    <div style='text-align: center; color: #94a3b8; font-size: 12px; padding: 10px;'>
         <strong>Aviso Legal (Disclaimer):</strong> O BrokerSimples é uma ferramenta educacional. As informações não constituem recomendação direta de investimento.
     </div>
 """,
